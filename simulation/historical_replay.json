@@ -1,0 +1,95 @@
+{
+  "teaching_start": "2025-03-21",
+  "weeks": [
+    {
+      "week": 2,
+      "students_active": 156,
+      "flagged": 156,
+      "flagged_correct": 88,
+      "precision": 0.564,
+      "recall": 0.88
+    },
+    {
+      "week": 3,
+      "students_active": 163,
+      "flagged": 163,
+      "flagged_correct": 94,
+      "precision": 0.577,
+      "recall": 0.94
+    },
+    {
+      "week": 4,
+      "students_active": 166,
+      "flagged": 166,
+      "flagged_correct": 96,
+      "precision": 0.578,
+      "recall": 0.96
+    },
+    {
+      "week": 5,
+      "students_active": 167,
+      "flagged": 167,
+      "flagged_correct": 97,
+      "precision": 0.581,
+      "recall": 0.97
+    },
+    {
+      "week": 6,
+      "students_active": 167,
+      "flagged": 167,
+      "flagged_correct": 97,
+      "precision": 0.581,
+      "recall": 0.97
+    },
+    {
+      "week": 7,
+      "students_active": 168,
+      "flagged": 167,
+      "flagged_correct": 98,
+      "precision": 0.587,
+      "recall": 0.98
+    },
+    {
+      "week": 8,
+      "students_active": 168,
+      "flagged": 165,
+      "flagged_correct": 98,
+      "precision": 0.594,
+      "recall": 0.98
+    },
+    {
+      "week": 9,
+      "students_active": 168,
+      "flagged": 163,
+      "flagged_correct": 97,
+      "precision": 0.595,
+      "recall": 0.97
+    },
+    {
+      "week": 10,
+      "students_active": 168,
+      "flagged": 161,
+      "flagged_correct": 97,
+      "precision": 0.602,
+      "recall": 0.97
+    },
+    {
+      "week": 11,
+      "students_active": 168,
+      "flagged": 151,
+      "flagged_correct": 94,
+      "precision": 0.623,
+      "recall": 0.94
+    },
+    {
+      "week": 12,
+      "students_active": 168,
+      "flagged": 141,
+      "flagged_correct": 93,
+      "precision": 0.66,
+      "recall": 0.93
+    }
+  ],
+  "total_at_risk": 100,
+  "cohort": 170
+}

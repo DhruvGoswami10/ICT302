@@ -1,0 +1,22 @@
+{
+  "models": {
+    "logistic": {
+      "roc_auc": 0.6991,
+      "f1": 0.6845,
+      "accuracy": 0.6488
+    },
+    "random_forest": {
+      "roc_auc": 0.6315,
+      "f1": 0.6344,
+      "accuracy": 0.5952
+    },
+    "grad_boost": {
+      "roc_auc": 0.6217,
+      "f1": 0.66,
+      "accuracy": 0.5952
+    }
+  },
+  "chosen": "logistic",
+  "n_students": 168,
+  "at_risk_rate": 0.5833
+}

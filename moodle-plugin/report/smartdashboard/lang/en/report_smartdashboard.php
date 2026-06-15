@@ -1,0 +1,30 @@
+<?php
+defined('MOODLE_INTERNAL') || die();
+
+$string['pluginname'] = 'Smart LMS Dashboard';
+$string['smartdashboard:view'] = 'View the Smart LMS Dashboard report';
+$string['taskriskscan'] = 'Smart LMS weekly AI risk scan';
+$string['dashboardurl'] = 'Dashboard URL';
+$string['dashboardurl_desc'] = 'Base URL of the live Smart LMS analytics dashboard.';
+$string['pythonpath'] = 'Python interpreter path';
+$string['pythonpath_desc'] = 'Path to the venv Python used by the risk scorer.';
+$string['scorerpath'] = 'Risk scorer script';
+$string['scorerpath_desc'] = 'Path to score_moodle.py.';
+$string['riskjson'] = 'Risk data file';
+$string['riskjson_desc'] = 'Path to live_risk.json produced by the scorer.';
+$string['heading'] = 'Smart LMS Dashboard — engagement & AI at-risk detection';
+$string['engagement'] = 'Engagement';
+$string['risk'] = 'AI risk';
+$string['band'] = 'Band';
+$string['events'] = 'Events';
+$string['activeweeks'] = 'Active weeks';
+$string['lastaccess'] = 'Last access';
+$string['student'] = 'Student';
+$string['highrisk'] = 'High risk';
+$string['mediumrisk'] = 'Medium risk';
+$string['lowrisk'] = 'Low risk';
+$string['openfull'] = 'Open full live dashboard';
+$string['runscan'] = 'Run AI risk scan now';
+$string['noflag'] = 'No at-risk students detected.';
+$string['summary'] = '{$a->total} students · {$a->high} high-risk · {$a->medium} medium-risk · average engagement {$a->eng}/100';
+$string['privacy:metadata'] = 'The Smart LMS Dashboard report displays existing log and grade data and does not store personal data itself.';
