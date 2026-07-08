@@ -19,7 +19,7 @@ from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import StandardScaler
 from sklearn.model_selection import StratifiedKFold, cross_val_predict, train_test_split
-from sklearn.metrics import roc_auc_score, f1_score, accuracy_score, classification_report
+from sklearn.metrics import roc_auc_score, f1_score, accuracy_score, classification_report, recall_score
 
 import lms_features as L
 
@@ -62,6 +62,7 @@ def main():
             "roc_auc": round(float(auc), 4),
             "f1": round(float(f1_score(y, pred)), 4),
             "accuracy": round(float(accuracy_score(y, pred)), 4),
+            "recall": round(float(recall_score(y, pred)), 4),
         }
         print(f"  {name:14s} AUC={auc:.3f} F1={metrics[name]['f1']:.3f} acc={metrics[name]['accuracy']:.3f}")
         if auc > best_auc:

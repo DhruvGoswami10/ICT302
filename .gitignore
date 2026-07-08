@@ -16,3 +16,10 @@ ml/models/live_risk.json
 *.status
 ml/score.log
 ml/train.log
+
+# editor backups / swap files
+*.swp
+*.swo
+*.save*
+*.backup*
+*.darkbackup

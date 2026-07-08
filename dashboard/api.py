@@ -157,5 +157,97 @@ def engagement_outcome():
     return jsonify(pts)
 
 
+@app.route("/api/student/<int:sid>")
+def student_detail(sid):
+    """Full activity history for one student (sid = the number in studentNNN)."""
+    conn = db()
+    try:
+        cur = conn.cursor()
+        cid = course_id(cur)
+        if not cid:
+            return jsonify([])
+        cur.execute("""
+            SELECT FROM_UNIXTIME(l.timecreated,'%%Y-%%m-%%d %%H:%%i:%%s') AS time,
+                   l.action, l.target, l.component
+            FROM mdl_logstore_standard_log l
+            JOIN mdl_user u ON u.id=l.userid
+            WHERE l.courseid=%s
+              AND CAST(REGEXP_REPLACE(u.username,'[^0-9]','') AS UNSIGNED)=%s
+            ORDER BY l.timecreated DESC LIMIT 200
+        """, (cid, sid))
+        return jsonify(cur.fetchall())
+    finally:
+        conn.close()
+
+
+@app.route("/api/assignments")
+def assignments():
+    """Per-assignment submission counts vs the enrolled student cohort."""
+    conn = db()
+    try:
+        cur = conn.cursor()
+        cid = course_id(cur)
+        if not cid:
+            return jsonify([])
+        cur.execute("""
+            SELECT a.id, a.name, a.duedate,
+                   COUNT(DISTINCT s.userid) as submitted,
+                   (SELECT COUNT(DISTINCT ra.userid) FROM mdl_role_assignments ra
+                    JOIN mdl_context ctx ON ctx.id=ra.contextid
+                         AND ctx.contextlevel=50 AND ctx.instanceid=%s
+                    WHERE ra.roleid=5) as total
+            FROM mdl_assign a
+            LEFT JOIN mdl_assign_submission s
+                   ON s.assignment=a.id AND s.status='submitted' AND s.latest=1
+            WHERE a.course=%s
+            GROUP BY a.id, a.name, a.duedate
+            ORDER BY a.duedate ASC
+        """, (cid, cid))
+        rows = cur.fetchall()
+        result = []
+        for r in rows:
+            total = r["total"] or 1
+            submitted = r["submitted"] or 0
+            result.append({
+                "name": r["name"],
+                "duedate": r["duedate"],
+                "submitted": submitted,
+                "total": total,
+                "percentage": (submitted / total) * 100,
+            })
+        return jsonify(result)
+    finally:
+        conn.close()
+
+
+@app.route("/api/resources")
+def resources():
+    """Viewable course content (pages, urls, forums, files) — excludes assignments/quizzes."""
+    conn = db()
+    try:
+        cur = conn.cursor()
+        cid = course_id(cur)
+        if not cid:
+            return jsonify([])
+        cur.execute("""
+            SELECT cm.id, m.name as type,
+                   COALESCE(r.name, u.name, p.name, f.name, cm.id) as name,
+                   (SELECT COUNT(*) FROM mdl_logstore_standard_log l
+                    WHERE l.contextinstanceid = cm.id AND l.contextlevel = 70) as views
+            FROM mdl_course_modules cm
+            JOIN mdl_modules m ON m.id=cm.module
+            LEFT JOIN mdl_resource r ON r.id=cm.instance AND m.name='resource'
+            LEFT JOIN mdl_url u ON u.id=cm.instance AND m.name='url'
+            LEFT JOIN mdl_page p ON p.id=cm.instance AND m.name='page'
+            LEFT JOIN mdl_forum f ON f.id=cm.instance AND m.name='forum'
+            WHERE cm.course=%s AND cm.visible=1
+            AND m.name NOT IN ('assign','quiz','label')
+            ORDER BY cm.section, cm.id
+        """, (cid,))
+        return jsonify(cur.fetchall())
+    finally:
+        conn.close()
+
+
 if __name__ == "__main__":
     app.run(host="127.0.0.1", port=5000)

@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Unit Resources — MoodleLens</title>
+  <style>
+    :root{--bg:#0B0D10;--card:#14171B;--line:#26292D;--txt:#E8EAED;--mut:#9AA3AF;--accent:#35D0C0;
+          --hi:#FF6B5B;--med:#FFC24B;--lo:#3DDC97;}
+    *{box-sizing:border-box;font-family:ui-monospace,'SF Mono',Consolas,monospace}
+    body { background:var(--bg); color:var(--txt); margin:0; padding:24px; font-size:13px; }
+    h1 { color:var(--accent); font-size:1.2rem; margin-bottom:4px; }
+    h2 { color:var(--mut); font-size:.85rem; text-transform:uppercase; letter-spacing:1px; margin-top:28px; margin-bottom:12px; }
+    .back { color:var(--mut); font-size:0.85rem; text-decoration:none; display:inline-block; margin-bottom:20px; }
+    .back:hover { color:var(--accent); }
+    table { width:100%; border-collapse:collapse; font-size:0.85rem; margin-bottom:28px; }
+    th { background:var(--card); color:var(--mut); text-align:left; padding:10px 14px; font-size:0.7rem; text-transform:uppercase; letter-spacing:.5px; border:1px solid var(--line); }
+    td { padding:10px 14px; border-bottom:1px solid var(--line); }
+    tr:hover td { background:var(--card); }
+    .badge-pdf { background:rgba(255,107,91,.15); color:var(--hi); padding:2px 9px; border-radius:3px; font-size:10.5px; font-weight:700; text-transform:uppercase; }
+    .badge-url { background:rgba(53,208,192,.15); color:var(--accent); padding:2px 9px; border-radius:3px; font-size:10.5px; font-weight:700; text-transform:uppercase; }
+    .badge-page { background:rgba(61,220,151,.15); color:var(--lo); padding:2px 9px; border-radius:3px; font-size:10.5px; font-weight:700; text-transform:uppercase; }
+    .badge-other { background:rgba(154,163,175,.15); color:var(--mut); padding:2px 9px; border-radius:3px; font-size:10.5px; font-weight:700; text-transform:uppercase; }
+    .pct-bar { height:6px; border-radius:3px; background:var(--line); overflow:hidden; margin-top:4px; }
+    .pct-bar-fill { height:100%; background:var(--accent); border-radius:3px; }
+    .empty { color:#5a6068; text-align:center; padding:40px; }
+    .stat { color:var(--mut); font-size:0.85rem; }
+  </style>
+</head>
+<body>
+  <a class="back" href="index.html">← back_to_dashboard</a>
+  <h1>Viewable Resources in Unit</h1>
+  <p id="page-meta" style="color:var(--mut);font-size:0.85rem;margin-bottom:24px;"></p>
+
+  <h2>Assignments</h2>
+  <table>
+    <thead>
+      <tr>
+        <th>Name</th>
+        <th>Due Date</th>
+        <th>Submissions</th>
+        <th>Submission Rate</th>
+      </tr>
+    </thead>
+    <tbody id="assignment-rows"></tbody>
+  </table>
+
+  <h2>Other Resources</h2>
+  <table>
+    <thead>
+      <tr>
+        <th>Name</th>
+        <th>Type</th>
+      </tr>
+    </thead>
+    <tbody id="resource-rows"></tbody>
+  </table>
+
+  <script>
+    const API = "/api";
+
+    function badgeClass(type) {
+      if (type.includes("pdf") || type.includes("file")) return "badge-pdf";
+      if (type.includes("url")) return "badge-url";
+      if (type.includes("page")) return "badge-page";
+      return "badge-other";
+    }
+
+    function friendlyType(type) {
+      if (type.includes("pdf") || type.includes("file")) return "PDF Document";
+      if (type.includes("url")) return "URL / Link";
+      if (type.includes("page")) return "Page";
+      if (type.includes("forum")) return "Forum";
+      if (type.includes("quiz")) return "Quiz";
+      return type;
+    }
+
+    fetch(`${API}/assignments`)
+      .then(r => r.json())
+      .then(rows => {
+        const tb = document.getElementById("assignment-rows");
+        if (!rows.length) {
+          tb.innerHTML = `<tr><td colspan="4" class="empty">No assignments found.</td></tr>`;
+          return;
+        }
+        tb.innerHTML = rows.map(a => {
+          const pct = a.percentage || 0;
+          const due = a.duedate ? new Date(a.duedate * 1000).toLocaleString('en-GB', {
+            day:'numeric', month:'long', year:'numeric', hour:'2-digit', minute:'2-digit'
+          }) : "No due date";
+          return `
+            <tr>
+              <td>${a.name}</td>
+              <td>${due}</td>
+              <td>${a.submitted} / ${a.total}</td>
+              <td>
+                <span>${pct.toFixed(1)}%</span>
+                <div class="pct-bar"><div class="pct-bar-fill" style="width:${Math.min(100,pct)}%"></div></div>
+              </td>
+            </tr>
+          `;
+        }).join("");
+        document.getElementById("page-meta").textContent =
+          `${rows.length} assignment${rows.length !== 1 ? "s" : ""} found`;
+      })
+      .catch(() => {
+        document.getElementById("assignment-rows").innerHTML =
+          `<tr><td colspan="4" class="empty">Could not load assignment data — endpoint not yet available.</td></tr>`;
+      });
+
+    fetch(`${API}/resources`)
+      .then(r => r.json())
+      .then(rows => {
+        const tb = document.getElementById("resource-rows");
+        if (!rows.length) {
+          tb.innerHTML = `<tr><td colspan="2" class="empty">No resources found.</td></tr>`;
+          return;
+        }
+        tb.innerHTML = rows.map(r => `
+          <tr>
+            <td>${r.name}</td>
+            <td><span class="${badgeClass(r.type)}">${friendlyType(r.type)}</span></td>
+          </tr>
+        `).join("");
+      })
+      .catch(() => {
+        document.getElementById("resource-rows").innerHTML =
+          `<tr><td colspan="2" class="empty">Could not load resource data — endpoint not yet available.</td></tr>`;
+      });
+  </script>
+</body>
+</html>
