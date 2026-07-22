@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Model Performance — MoodleLens</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <style>
+    :root{--bg:#0B0D10;--card:#14171B;--line:#26292D;--txt:#E8EAED;--mut:#9AA3AF;--accent:#35D0C0;}
+    *{box-sizing:border-box;font-family:ui-monospace,'SF Mono',Consolas,monospace}
+    body { background:var(--bg); color:var(--txt); margin:0; padding:24px; font-size:13px; }
+    h1 { color:var(--accent); font-size:1.2rem; margin-bottom:4px; }
+    .back { color:var(--mut); font-size:0.85rem; text-decoration:none; display:inline-block; margin-bottom:20px; }
+    .back:hover { color:var(--accent); }
+    .meta { color:var(--mut); font-size:0.85rem; margin-bottom:24px; }
+    .kpi-row{display:flex;gap:16px;margin-bottom:24px}
+    .card{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:18px;flex:1}
+    .card h3{font-size:11px;text-transform:uppercase;letter-spacing:1px;color:var(--mut);margin:0 0 12px 0;font-weight:600}
+    .card .v{font-size:30px;font-weight:700;color:var(--accent)}
+    .card .l{color:var(--mut);font-size:11px;margin-top:4px;text-transform:uppercase;letter-spacing:.5px}
+    .grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px}
+    .chart-box{position:relative;height:230px}
+    .chart-box canvas{width:100%!important;height:100%!important}
+    table { border-collapse:collapse; font-size:0.85rem; width:100%; }
+    th, td { text-align:left; padding:10px 14px; border-bottom:1px solid var(--line); }
+    th { background:var(--card); color:var(--mut); text-transform:uppercase; font-size:0.7rem; letter-spacing:.5px; }
+  </style>
+</head>
+<body>
+  <a class="back" href="index.html">← back_to_dashboard</a>
+  <h1>Model Performance</h1>
+  <p class="meta" id="page-meta"></p>
+  <div class="kpi-row">
+    <div class="card"><div class="v" id="k-auc">–</div><div class="l">Model AUC (cross-val)</div></div>
+  </div>
+  <div class="grid">
+    <div class="card"><h3>Early-warning accuracy by week</h3><div class="chart-box"><canvas id="c-early"></canvas></div></div>
+    <div class="card"><h3>What drives risk</h3><div class="chart-box"><canvas id="c-imp"></canvas></div></div>
+  </div>
+  <div class="card">
+    <h3>Model comparison</h3>
+    <table>
+      <thead><tr><th>Model</th><th>Accuracy</th><th>F1</th><th>Recall</th><th>AUC</th></tr></thead>
+      <tbody id="model-rows"></tbody>
+    </table>
+  </div>
+
+  <script>
+    const API = "/api";
+    const C = {hi:"#FF6B5B", med:"#FFC24B", lo:"#3DDC97", ac:"#35D0C0", line:"#26292D", mut:"#9AA3AF"};
+    Chart.defaults.color = C.mut;
+    Chart.defaults.borderColor = C.line;
+    Chart.defaults.font.family = "ui-monospace, 'SF Mono', Consolas, monospace";
+    const names = {logistic:"Logistic Regression", random_forest:"Random Forest", grad_boost:"Gradient Boosting"};
+
+    async function get(p){ const r = await fetch(API+p); return r.json(); }
+
+    function bar(id, labels, data, color, horizontal){
+      new Chart(document.getElementById(id),{type:"bar",
+        data:{labels,datasets:[{data,backgroundColor:color,borderRadius:3}]},
+        options:{maintainAspectRatio:false,indexAxis:horizontal?"y":"x",plugins:{legend:{display:false}},
+          interaction:{mode:'nearest',intersect:true},
+          scales:{x:{grid:{display:!horizontal}},y:{grid:{display:horizontal},ticks:{autoSkip:false}}}}});
+    }
+
+    (async () => {
+      const ew = await get("/early_warning");
+      bar("c-early", Object.keys(ew).map(k=>k.replace("week_","Wk ")), Object.values(ew), C.med, false);
+
+      const imp = await get("/feature_importances");
+      const items = Object.entries(imp).slice(0,6);
+      bar("c-imp", items.map(i=>i[0]), items.map(i=>Math.abs(i[1])), C.ac, true);
+
+      const m = await get("/metrics");
+      document.getElementById("k-auc").textContent = m.models[m.chosen].roc_auc.toFixed(4);
+      document.getElementById("page-meta").textContent =
+        `Trained on ${m.n_students} historical students · ${(m.at_risk_rate*100).toFixed(1)}% at-risk rate in that training set · ${names[m.chosen]||m.chosen} selected`;
+      document.getElementById("model-rows").innerHTML = Object.entries(m.models).map(([key,v])=>{
+        const isChosen = key===m.chosen;
+        const style = isChosen ? `color:#35D0C0;font-weight:700` : "";
+        return `<tr style="${style}"><td>${names[key]||key}${isChosen?' ✓':''}</td><td>${(v.accuracy*100).toFixed(1)}%</td>
+          <td>${(v.f1*100).toFixed(1)}%</td><td>${(v.recall*100).toFixed(1)}%</td><td>${v.roc_auc.toFixed(4)}</td></tr>`;
+      }).join("");
+    })();
+  </script>
+</body>
+</html>

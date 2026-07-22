@@ -34,8 +34,8 @@
       <tr>
         <th>Timestamp</th>
         <th>Action</th>
-        <th>Component</th>
-        <th>Target</th>
+        <th title="What type of Moodle feature was used">Component</th>
+        <th title="What exactly was accessed within that feature">Target</th>
       </tr>
     </thead>
     <tbody id="activity-rows"></tbody>
@@ -60,12 +60,19 @@
           return;
         }
 
-        tb.innerHTML = rows.map(r => `
+        const componentNames = {
+  mod_page:"Lecture Page", mod_forum:"Discussion Forum", mod_url:"External Link",
+  mod_assign:"Assignment", mod_quiz:"Quiz", gradereport_user:"Grade Report", core:"General Course Activity"
+};
+const targetNames = {
+  course_module:"This specific resource", course:"Course homepage (overview)", grade_report:"Grade Report"
+};
+tb.innerHTML = rows.map(r => `
           <tr>
             <td>${r.time}</td>
             <td>${r.action}</td>
-            <td>${r.component}</td>
-            <td>${r.target || "—"}</td>
+            <td>${componentNames[r.component] || r.component}</td>
+            <td>${targetNames[r.target] || r.target || "—"}</td>
           </tr>
         `).join("");
 

@@ -50,6 +50,7 @@
       <tr>
         <th>Name</th>
         <th>Type</th>
+        <th>Views</th>
       </tr>
     </thead>
     <tbody id="resource-rows"></tbody>
@@ -119,6 +120,7 @@
           <tr>
             <td>${r.name}</td>
             <td><span class="${badgeClass(r.type)}">${friendlyType(r.type)}</span></td>
+            <td>${r.views ?? 0}</td>
           </tr>
         `).join("");
       })
