@@ -8,7 +8,7 @@ Model accuracy overhaul — honest out-of-fold evaluation, calibrated risk
 bands, and a pruned feature set found by cross-validated search.
 
 ### Machine-learning engine
-- **Accuracy 64.9% → 70.0%, ROC-AUC 0.699 → 0.761, at-risk recall 65% → 78%**
+- **Accuracy 64.9% → 70.5%, ROC-AUC 0.699 → 0.760, at-risk recall 65% → 78%**
   (all out-of-fold, repeated stratified 5-fold CV over 5 shuffles).
 - Pruned the 18-feature set to 9 via cross-validated search (greedy
   elimination + combination search, confirmed on fresh seeds and nested CV);
@@ -26,7 +26,7 @@ bands, and a pruned feature set found by cross-validated search.
 - Fixed the engagement component weights, which never matched the Excel
   export's component names (`Assignment`, `File`, …) — both naming schemes
   (export + live DB) are now covered.
-- Week-cutoff models (wk 2–12) ship in the model bundle; the live scorer picks
+- Week-cutoff models (wk 2–10) ship in the model bundle; the live scorer picks
   the one matching the cohort's elapsed weeks, and neutralises features the
   course structurally lacks (zero across the whole cohort) to the training
   median — live demo cohort no longer over-flagged as ~all High.
@@ -47,7 +47,7 @@ bands, and a pruned feature set found by cross-validated search.
   trialled as week-cutoff features and removed the same day — a mark is a
   component of the final total that defines the at-risk label, so it leaked
   the answer into the prediction and inflated the early-warning numbers.
-  Honest behavioral-only early warning, now reported for weeks 2–12:
+  Honest behavioral-only early warning, now reported for weeks 2–10:
   AUC 0.59 (week 2) → 0.71 (week 8) → 0.76 (week 10).
 
 ### Dashboard

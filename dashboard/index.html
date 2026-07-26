@@ -87,19 +87,19 @@
 
 <div class="grid kpis">
   <div class="card kpi"><div class="v ac" id="k-total">–</div><div class="l">Enrolled students (live)</div></div>
+  <div class="card kpi"><div class="v" id="k-gender">–</div><div class="l">Gender split (M/F)</div></div>
   <div class="card kpi clickable"><div class="v hi" id="k-high">–</div><div class="l">High-risk now</div></div>
   <div class="card kpi" title="A composite score from 0-100 combining login frequency, active weeks, and assignment activity. Higher means more consistent engagement — it is not a percentage.">
   <div class="v lo" id="k-eng">–</div><div class="l">Avg engagement score (0–100)</div>
 </div>
   <div class="card kpi clickable"><div class="v hi" id="k-nosub">–</div><div class="l">Students with no assignment interaction (whole term)</div></div>
   <div class="card kpi clickable"><div class="v ac" id="k-notlogin">–</div><div class="l">Students inactive since term start</div></div>
-  <div class="card kpi"><div class="v" id="k-gender">–</div><div class="l">Gender split (M/F)</div></div>
 </div>
 
 <div class="grid cards">
   <div class="card"><h3>Risk distribution (live cohort)</h3><div class="chart-box"><canvas id="c-risk"></canvas></div></div>
   <div class="card"><h3>Live activity — events per day</h3><div class="chart-box"><canvas id="c-timeline"></canvas></div></div>
-  <div class="card" style="grid-column:span 2"><h3>Engagement vs final mark (historical evidence) <span style="text-transform:none;letter-spacing:0;font-weight:400">· dot colour = risk the model predicted for that student out-of-sample</span></h3><div class="chart-box"><canvas id="c-scatter"></canvas></div></div>
+  <div class="card" style="grid-column:span 2"><h3>Engagement vs final mark (historical evidence)</h3><div class="chart-box"><canvas id="c-scatter"></canvas></div></div>
   <div class="flex-row" style="display:flex;gap:8px;align-items:stretch;grid-column:1/-1;margin-top:-6px;height:420px">
   <div class="card" style="flex:0 0 340px;display:flex;flex-direction:column;min-height:0"><h3>Activity feed</h3><div class="feed" id="feed" style="flex:1">…</div></div>
   <div class="card" style="flex:1;min-width:0;display:flex;flex-direction:column;min-height:0">

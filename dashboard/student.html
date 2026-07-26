@@ -65,7 +65,8 @@
   mod_assign:"Assignment", mod_quiz:"Quiz", gradereport_user:"Grade Report", core:"General Course Activity"
 };
 const targetNames = {
-  course_module:"This specific resource", course:"Course homepage (overview)", grade_report:"Grade Report"
+  course_module:"This specific resource", course:"Course homepage (overview)", grade_report:"Their own grades",
+  feedback:"Checked feedback", assessable:"Assignment submission"
 };
 tb.innerHTML = rows.map(r => `
           <tr>
@@ -76,32 +77,54 @@ tb.innerHTML = rows.map(r => `
           </tr>
         `).join("");
 
-        const weekCounts = {};
-        rows.forEach(r => {
-          const date = new Date(r.time);
-          const weekNum = Math.ceil(date.getDate() / 7);
-          const label = date.toLocaleString('default', {month:'short'}) + " Wk" + weekNum;
-          weekCounts[label] = (weekCounts[label] || 0) + 1;
-        });
+        // Sequential weeks counted from this student's first activity record,
+        // with zero-activity weeks kept in the sequence as zero bars.
+        const MS_PER_WEEK = 7 * 24 * 60 * 60 * 1000;
+        const times = rows.map(r => new Date(r.time).getTime());
+        const firstTime = times.reduce((a, b) => Math.min(a, b));
+        const lastTime = times.reduce((a, b) => Math.max(a, b));
+        const weekOf = t => Math.floor((t - firstTime) / MS_PER_WEEK) + 1;
+        const weekCounts = new Array(weekOf(lastTime)).fill(0);
+        times.forEach(t => { weekCounts[weekOf(t) - 1] += 1; });
+        // Plugin-free data labels: draw each bar's value above it on the canvas.
+        const barValueLabels = {
+          id: "barValueLabels",
+          afterDatasetsDraw(chart) {
+            const ctx = chart.ctx;
+            const meta = chart.getDatasetMeta(0);
+            ctx.save();
+            ctx.font = "10px ui-monospace,'SF Mono',Consolas,monospace";
+            ctx.fillStyle = "#9AA3AF";
+            ctx.textAlign = "center";
+            ctx.textBaseline = "bottom";
+            chart.data.datasets[0].data.forEach((value, i) => {
+              const bar = meta.data[i];
+              if (bar) ctx.fillText(String(value), bar.x, bar.y - 4);
+            });
+            ctx.restore();
+          }
+        };
         new Chart(document.getElementById("c-weekly"), {
           type: "bar",
           data: {
-            labels: Object.keys(weekCounts),
+            labels: weekCounts.map((_, i) => "Week " + (i + 1)),
             datasets: [{
               label: "Events",
-              data: Object.values(weekCounts),
+              data: weekCounts,
               backgroundColor: "#35D0C0",
               borderRadius: 3
             }]
           },
           options: {
             maintainAspectRatio: false,
+            layout: { padding: { top: 16 } },
             plugins: { legend: { display: false } },
             scales: {
               x: { grid: { display: false } },
               y: { beginAtZero: true, grid: { color: "#26292D" } }
             }
-          }
+          },
+          plugins: [barValueLabels]
         });
       })
       .catch(() => {

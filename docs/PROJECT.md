@@ -99,7 +99,7 @@ Cohort at-risk rate: **58%** (a genuinely high-failure unit).
   evidence shows genuine generalisation, not training-set fit.
 - **Engagement index (0–100):** weighted activity + consistency + breadth
   (component weights cover both the Excel export's and the live DB's naming).
-- **Early warning:** cumulative data up to weeks 2/4/6/8/10/12, same OOF
+- **Early warning:** cumulative data up to weeks 2/4/6/8/10, same OOF
   protocol, behavioral features only — assessment marks are never model
   inputs, in the week-cutoff models or anywhere else: a mark is a component
   of the final total that defines the at-risk label, so using it would leak

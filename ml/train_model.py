@@ -180,7 +180,7 @@ def main():
     ew = {}
     week_models = {}
     yz = data["at_risk"].values
-    for wk in (2, 4, 6, 8, 10, 12):
+    for wk in (2, 4, 6, 8, 10):
         cutoff = start + pd.Timedelta(weeks=wk)
         fz = L.build_features(logs, cutoff=cutoff, start=start).merge(res, on="sid", how="inner")
         fz = fz.set_index("sid").reindex(data["sid"]).reset_index()

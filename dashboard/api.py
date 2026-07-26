@@ -96,7 +96,11 @@ def importances():
 
 @app.route("/api/early_warning")
 def early_warning():
-    return jsonify(load("early_warning.json", {}))
+    # serialize in week order: jsonify would sort keys alphabetically,
+    # putting week_10 before week_2
+    ew = load("early_warning.json", {})
+    ordered = {k: ew[k] for k in sorted(ew, key=lambda k: int(k.rsplit("_", 1)[-1]))}
+    return app.response_class(json.dumps(ordered), mimetype="application/json")
 
 
 @app.route("/api/metrics")

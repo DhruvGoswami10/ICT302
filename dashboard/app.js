@@ -178,8 +178,7 @@ async function refreshStatic(){
   charts["c-scatter"]=new Chart(document.getElementById("c-scatter"),{type:"scatter",
     data:{datasets:[dot("High"),dot("Medium"),dot("Low")]},
     plugins:[passLinePlugin],
-    options:{maintainAspectRatio:false,plugins:{legend:{display:true,position:"bottom",
-        labels:{usePointStyle:true,pointStyle:"circle",boxWidth:6,boxHeight:6}},
+    options:{maintainAspectRatio:false,plugins:{legend:{display:false},
         tooltip:{callbacks:{label:ctx=>{
           const p = ctx.raw;
           return [`Engagement: ${p.x}`, `Final mark: ${p.y}`, `Risk: ${p.band}`];

@@ -14,7 +14,7 @@
     .meta { color:var(--mut); font-size:0.85rem; margin-bottom:24px; }
     .kpi-row{display:flex;gap:16px;margin-bottom:24px}
     .card{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:18px;flex:1}
-    .card h3{font-size:11px;text-transform:uppercase;letter-spacing:1px;color:var(--mut);margin:0 0 12px 0;font-weight:600}
+    .card h3{font-size:13.5px;text-transform:uppercase;letter-spacing:1px;color:var(--mut);margin:0 0 12px 0;font-weight:700}
     .card .v{font-size:30px;font-weight:700;color:var(--accent)}
     .card .l{color:var(--mut);font-size:11px;margin-top:4px;text-transform:uppercase;letter-spacing:.5px}
     .grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px}
@@ -31,19 +31,18 @@
   <p class="meta" id="page-meta"></p>
   <div class="kpi-row">
     <div class="card"><div class="v" id="k-auc">–</div><div class="l">Model AUC (cross-val)</div></div>
-    <div class="card"><div class="v" id="k-acc">–</div><div class="l">Accuracy (out-of-fold)</div></div>
     <div class="card"><div class="v" id="k-recall">–</div><div class="l">At-risk recall (out-of-fold)</div></div>
     <div class="card"><div class="v" id="k-band">–</div><div class="l">High-band flags that actually failed</div></div>
     <div class="card"><div class="v" id="k-caught">–</div><div class="l">Actual failures caught by High band</div></div>
   </div>
   <div class="grid">
-    <div class="card"><h3>Early-warning accuracy by week</h3><div class="chart-box"><canvas id="c-early"></canvas></div></div>
-    <div class="card"><h3>What drives risk</h3><div class="chart-box"><canvas id="c-imp"></canvas></div></div>
+    <div class="card"><h3>Early-warning AUC by week</h3><div class="chart-box"><canvas id="c-early"></canvas></div></div>
+    <div class="card"><h3>Top 6 Risk Factors</h3><div class="chart-box"><canvas id="c-imp"></canvas></div></div>
   </div>
   <div class="card">
     <h3>Model comparison</h3>
     <table>
-      <thead><tr><th>Model</th><th>Accuracy</th><th>F1</th><th>Recall</th><th>AUC</th></tr></thead>
+      <thead><tr><th>Model</th><th>F1</th><th>Recall</th><th>AUC</th></tr></thead>
       <tbody id="model-rows"></tbody>
     </table>
   </div>
@@ -72,13 +71,12 @@
       bar("c-early", wks.map(k=>k.replace("week_","Wk ")), wks.map(k=>ew[k]), C.med, false);
 
       const imp = await get("/feature_importances");
-      const items = Object.entries(imp).slice(0,6);
+      const items = Object.entries(imp).sort((a,b)=>Math.abs(b[1])-Math.abs(a[1])).slice(0,6);
       bar("c-imp", items.map(i=>i[0]), items.map(i=>Math.abs(i[1])), C.ac, true);
 
       const m = await get("/metrics");
       const best = m.models[m.chosen];
       document.getElementById("k-auc").textContent = best.roc_auc.toFixed(4);
-      document.getElementById("k-acc").textContent = (best.accuracy*100).toFixed(1)+"%";
       document.getElementById("k-recall").textContent = (best.recall*100).toFixed(1)+"%";
       const hiBand = m.band_alignment && m.band_alignment.high;
       document.getElementById("k-band").textContent =
@@ -91,7 +89,7 @@
       document.getElementById("model-rows").innerHTML = Object.entries(m.models).map(([key,v])=>{
         const isChosen = key===m.chosen;
         const style = isChosen ? `color:#35D0C0;font-weight:700` : "";
-        return `<tr style="${style}"><td>${names[key]||key}${isChosen?' ✓':''}</td><td>${(v.accuracy*100).toFixed(1)}%</td>
+        return `<tr style="${style}"><td>${names[key]||key}${isChosen?' ✓':''}</td>
           <td>${(v.f1*100).toFixed(1)}%</td><td>${(v.recall*100).toFixed(1)}%</td><td>${v.roc_auc.toFixed(4)}</td></tr>`;
       }).join("");
     })();
