@@ -38,6 +38,13 @@ bands, and a pruned feature set found by cross-validated search.
   prefer false positives over missed students; it caught only 47% before,
   81% now), and the Low line requires a historical failure rate of at most
   half the cohort's base rate.
+- Early-warning models now use the continuous-assessment columns of the
+  results export that were previously ignored (10 weekly Assessed Exercise
+  marks, Assignment 1 mark), restricted to what is known by each cutoff
+  week; mid-term AUC rises to 0.79 by week 4 and 0.82 by week 8 (logs-only:
+  0.67/0.71), and week-6 replay precision improves 0.66 → 0.80. The
+  end-of-term model stays engagement-only since final marks derive from
+  these assessments.
 
 ### Dashboard
 - Engagement-vs-mark scatter: legend for the risk colours, dashed pass-mark

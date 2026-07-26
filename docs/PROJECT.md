@@ -99,11 +99,16 @@ Cohort at-risk rate: **58%** (a genuinely high-failure unit).
   evidence shows genuine generalisation, not training-set fit.
 - **Engagement index (0–100):** weighted activity + consistency + breadth
   (component weights cover both the Excel export's and the live DB's naming).
-- **Early warning:** cumulative data up to weeks 2/4/6/8, same OOF protocol —
-  AUC rises **0.59 → 0.71 by week 8**. Week-cutoff models ship in the bundle:
-  the live scorer picks the one matching the cohort's elapsed weeks, and
-  neutralises features the course structurally lacks (zero across the whole
-  cohort, e.g. no feedback released) to the training median.
+- **Early warning:** cumulative data up to weeks 2/4/6/8, same OOF protocol.
+  Week-cutoff models additionally use the continuous-assessment marks known by
+  that week from the results export (weekly exercise submissions/marks, A1
+  mark from week 7) — real mid-term data a UC has, but excluded from the
+  end-of-term model because final marks derive from them. AUC rises
+  **0.59 → 0.79 by week 4 → 0.82 by week 8** (logs-only: 0.59 → 0.71).
+  Week-cutoff models ship in the bundle: the live scorer picks the one
+  matching the cohort's elapsed weeks, and neutralises features the course
+  structurally lacks (zero across the whole cohort, e.g. no marks in the
+  gradebook) to the training median.
 - **Explainability:** coefficients exported to `ml/models/feature_importances.json`
   (few active days / no feedback views / little late-term activity → higher risk).
 - **Risk-band cutoffs are derived from the data at every retrain**, not fixed

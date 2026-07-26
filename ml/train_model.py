@@ -174,21 +174,34 @@ def main():
     # (live scoring, replay) must be scored by the model whose data window has
     # the same scale, otherwise every student looks disengaged relative to
     # full-term feature ranges and gets over-flagged.
+    # Week-cutoff models also see the continuous-assessment marks known by
+    # that week (weekly exercise submissions/marks, A1 mark from week 7) —
+    # real recorded data a UC has mid-term. The end-of-term model above stays
+    # engagement-only, because final marks are derived from these assessments.
+    assess = L.load_assessments()
     ew = {}
     week_models = {}
+    yz = data["at_risk"].values
     for wk in (2, 4, 6, 8, 10, 12):
         cutoff = start + pd.Timedelta(weeks=wk)
-        fz = L.build_features(logs, cutoff=cutoff, start=start).merge(res, on="sid", how="inner")
+        fz = (L.build_features(logs, cutoff=cutoff, start=start)
+              .merge(res, on="sid", how="inner")
+              .merge(L.assessment_features(assess, wk), on="sid", how="left"))
         fz = fz.set_index("sid").reindex(data["sid"]).reset_index()
-        Xz = L.to_matrix(fz.fillna(0)); yz = data["at_risk"].values
+        wk_cols = L.FEATURE_COLS + L.ASSESS_COLS
+        Xz = L.to_matrix(fz.fillna(0), wk_cols)
         if wk <= 8:
             m = make_models()[best_name]
             aucs = [roc_auc_score(yz, oof_proba(m, Xz, yz, s)) for s in CV_SEEDS]
+            logonly = [roc_auc_score(yz, oof_proba(make_models()[best_name],
+                       L.to_matrix(fz.fillna(0)), yz, s)) for s in CV_SEEDS]
             ew[f"week_{wk}"] = round(float(np.mean(aucs)), 4)
-            print(f"  early-warning week {wk}: AUC={ew[f'week_{wk}']:.3f}")
+            print(f"  early-warning week {wk}: AUC={ew[f'week_{wk}']:.3f} "
+                  f"(logs only: {np.mean(logonly):.3f})")
         wm = make_models()[best_name]
         wm.fit(Xz, yz)
-        week_models[wk] = wm
+        week_models[wk] = {"model": wm, "features": wk_cols,
+                           "medians": {c: float(Xz[c].median()) for c in wk_cols}}
 
     joblib.dump({"model": final, "week_models": week_models, "features": L.FEATURE_COLS,
                  # training-cohort medians of the model inputs, used by the live

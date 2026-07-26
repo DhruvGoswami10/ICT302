@@ -85,6 +85,8 @@ def main():
 
     bundle = joblib.load(f"{OUT}/risk_model.joblib")
     model = bundle["model"]
+    cols = bundle.get("features", L.FEATURE_COLS)
+    medians = bundle.get("feature_medians", {})
     week_models = bundle.get("week_models", {})
 
     # ensure every enrolled student appears even with zero activity
@@ -99,7 +101,8 @@ def main():
         if week_models and elapsed < term_weeks - 1:
             fits = [w for w in sorted(week_models) if w <= elapsed]
             wk = fits[-1] if fits else min(week_models)
-            model = week_models[wk]
+            entry = week_models[wk]
+            model, cols, medians = entry["model"], entry["features"], entry["medians"]
             print(f"cohort at week {elapsed:.1f} of ~{term_weeks:.0f} -> using week-{wk} model")
     else:
         feat = pd.DataFrame()
@@ -120,11 +123,13 @@ def main():
         feat = pd.concat([feat, pd.DataFrame(blanks)], ignore_index=True)
 
     feat["engagement"] = L.engagement_score(feat) if len(feat) > 1 else 0.0
-    X = L.to_matrix(feat)
+    X = L.to_matrix(feat, cols)
     # a feature that is zero for the ENTIRE cohort means the course doesn't
-    # offer that signal (e.g. no feedback released yet) — neutralise it to the
-    # training median rather than reading it as every student disengaging
-    for c, m in bundle.get("feature_medians", {}).items():
+    # offer that signal (e.g. no feedback or marks released yet) — neutralise
+    # it to the training median rather than reading it as every student
+    # disengaging; this is also how assessment-mark features degrade when the
+    # course has no gradebook data
+    for c, m in medians.items():
         if c in X.columns and len(X) and X[c].max() == 0:
             X[c] = m
     proba = model.predict_proba(X)[:, 1]
