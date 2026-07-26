@@ -23,14 +23,24 @@ DB = dict(host="127.0.0.1", user="moodleuser", password="Moodle#2026db",
           database="moodle", charset="utf8mb4", cursorclass=pymysql.cursors.DictCursor)
 COURSE_SHORT = "ICT001"
 SIM_TAG = '{"sim":true}'
-TERM_START = datetime(2025, 3, 21)
-WEEKS = 12
+WEEKS = 12        # teaching weeks
+TAIL_WEEKS = 5    # exam / marking / results period, like the real cohort's logs
+# anchor the term so it ends just before now: the dashboard reads as a term
+# wrapping up today, and manually generated live activity lands in-window
+TERM_START = (datetime.now() - timedelta(weeks=WEEKS + TAIL_WEEKS, days=1)
+              ).replace(hour=0, minute=0, second=0, microsecond=0)
 random.seed(42)
 
+# per-week volumes sized against the historical cohort the model was trained
+# on (~326 events per student over the term), so demo students sit on the same
+# scale as the real students the risk model learned from
 PROFILES = {
-    "high":   dict(weeks=range(0, WEEKS),   per_week=(12, 20), submit=0.7, gradecheck=0.5),
-    "medium": dict(weeks=range(0, WEEKS, 1), per_week=(4, 9),  submit=0.4, gradecheck=0.3),
-    "low":    dict(weeks=range(0, 4),       per_week=(0, 3),   submit=0.05, gradecheck=0.1),
+    "high":   dict(weeks=range(0, WEEKS),   per_week=(25, 45), submit=0.95, gradecheck=0.5,
+                   feedback=0.9, fb_views=(4, 9), tail_per_week=(1, 4)),
+    "medium": dict(weeks=range(0, WEEKS, 1), per_week=(8, 18), submit=0.55, gradecheck=0.3,
+                   feedback=0.5, fb_views=(1, 4), tail_per_week=(1, 3)),
+    "low":    dict(weeks=range(0, 4),       per_week=(0, 4),   submit=0.05, gradecheck=0.1,
+                   feedback=0.05, fb_views=(0, 1), tail_per_week=(0, 2)),
 }
 
 
@@ -109,13 +119,39 @@ def main():
                 day = TERM_START + timedelta(weeks=w, days=random.randint(0, 6), hours=20)
                 ev(uid, day, r"\gradereport_user\event\grade_report_viewed",
                    "gradereport_user", "viewed", "grade_report", coursectx, 50, courseid)
-        # assignment submissions for engaged students
-        if assigns and random.random() < prof["submit"]:
-            for a in assigns:
-                day = TERM_START + timedelta(weeks=random.randint(4, 9), days=random.randint(0, 6), hours=22)
-                ev(uid, day, r"\mod_assign\event\assessable_submitted", "mod_assign",
-                   "submitted", "assessable", a["contextid"], 70, a["cmid"],
-                   "assign_submission", a["instance"], crud="u")
+        # assignment submissions (rolled per assignment) + later feedback views,
+        # like real cohorts: engaged students hand work in and read the feedback
+        for a in assigns:
+            if random.random() >= prof["submit"]:
+                continue
+            wk = random.randint(4, 9)
+            day = TERM_START + timedelta(weeks=wk, days=random.randint(0, 6), hours=22)
+            ev(uid, day, r"\mod_assign\event\assessable_submitted", "mod_assign",
+               "submitted", "assessable", a["contextid"], 70, a["cmid"],
+               "assign_submission", a["instance"], crud="u")
+            for _ in range(random.randint(*prof["fb_views"])):
+                if random.random() < prof["feedback"]:
+                    fday = TERM_START + timedelta(weeks=wk + random.randint(1, 3),
+                                                  days=random.randint(0, 6),
+                                                  hours=random.randint(8, 22))
+                    ev(uid, fday, r"\mod_assign\event\feedback_viewed", "mod_assign",
+                       "viewed", "feedback", a["contextid"], 70, a["cmid"],
+                       "assign_grades", a["instance"])
+        # exam / marking / results weeks: light closure activity (grade checks,
+        # reading released feedback), mirroring the real cohort's log shape
+        for w in range(WEEKS, WEEKS + TAIL_WEEKS):
+            for _ in range(random.randint(*prof["tail_per_week"])):
+                day = TERM_START + timedelta(weeks=w, days=random.randint(0, 6),
+                                             hours=random.randint(8, 22),
+                                             minutes=random.randint(0, 59))
+                if random.random() < 0.5 or not assigns:
+                    ev(uid, day, r"\gradereport_user\event\grade_report_viewed",
+                       "gradereport_user", "viewed", "grade_report", coursectx, 50, courseid)
+                else:
+                    a = random.choice(assigns)
+                    ev(uid, day, r"\mod_assign\event\feedback_viewed", "mod_assign",
+                       "viewed", "feedback", a["contextid"], 70, a["cmid"],
+                       "assign_grades", a["instance"])
 
     sql = """INSERT INTO mdl_logstore_standard_log
         (eventname,component,action,target,objecttable,objectid,crud,edulevel,
