@@ -125,17 +125,17 @@ def main():
     feat["engagement"] = L.engagement_score(feat) if len(feat) > 1 else 0.0
     X = L.to_matrix(feat, cols)
     # a feature that is zero for the ENTIRE cohort means the course doesn't
-    # offer that signal (e.g. no feedback or marks released yet) — neutralise
-    # it to the training median rather than reading it as every student
-    # disengaging; this is also how assessment-mark features degrade when the
-    # course has no gradebook data
+    # offer that signal (e.g. no feedback released yet) — neutralise it to the
+    # training median rather than reading it as every student disengaging
     for c, m in medians.items():
         if c in X.columns and len(X) and X[c].max() == 0:
             X[c] = m
     proba = model.predict_proba(X)[:, 1]
     feat["risk_prob"] = proba.round(4)
-    # band cutoffs are derived from data at train time (see train_model.py)
-    bands = bundle.get("bands", {"low": 0.33, "high": 0.66})
+    # band cutoffs are derived from data at train time (see train_model.py);
+    # the fallback mirrors the current 60%-recall operating point for bundles
+    # predating shipped bands
+    bands = bundle.get("bands", {"low": 0.46165, "high": 0.60225})
     feat["risk_band"] = pd.cut(feat["risk_prob"], [-0.01, bands["low"], bands["high"], 1.01],
                                labels=["Low", "Medium", "High"]).astype(str)
     # attach display names

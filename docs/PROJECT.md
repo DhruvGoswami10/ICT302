@@ -99,23 +99,23 @@ Cohort at-risk rate: **58%** (a genuinely high-failure unit).
   evidence shows genuine generalisation, not training-set fit.
 - **Engagement index (0–100):** weighted activity + consistency + breadth
   (component weights cover both the Excel export's and the live DB's naming).
-- **Early warning:** cumulative data up to weeks 2/4/6/8, same OOF protocol.
-  Week-cutoff models additionally use the continuous-assessment marks known by
-  that week from the results export (weekly exercise submissions/marks, A1
-  mark from week 7) — real mid-term data a UC has, but excluded from the
-  end-of-term model because final marks derive from them. AUC rises
-  **0.59 → 0.79 by week 4 → 0.82 by week 8** (logs-only: 0.59 → 0.71).
-  Week-cutoff models ship in the bundle: the live scorer picks the one
-  matching the cohort's elapsed weeks, and neutralises features the course
-  structurally lacks (zero across the whole cohort, e.g. no marks in the
-  gradebook) to the training median.
+- **Early warning:** cumulative data up to weeks 2/4/6/8/10/12, same OOF
+  protocol, behavioral features only — assessment marks are never model
+  inputs, in the week-cutoff models or anywhere else: a mark is a component
+  of the final total that defines the at-risk label, so using it would leak
+  the answer into the prediction. AUC rises **0.59 → 0.71 by week 8 → 0.76
+  by week 10**. Week-cutoff models ship in the bundle: the live scorer picks
+  the one matching the cohort's elapsed weeks, and neutralises features the
+  course structurally lacks (zero across the whole cohort, e.g. no feedback
+  released) to the training median.
 - **Explainability:** coefficients exported to `ml/models/feature_importances.json`
   (few active days / no feedback views / little late-term activity → higher risk).
 - **Risk-band cutoffs are derived from the data at every retrain**, not fixed
   splits of the scale: the High alert line is the highest threshold that still
-  catches **≥ 80% of actual failures** out-of-fold (the UC requirement prefers
-  false positives over missed at-risk students — currently ≈ 0.49, catching
-  81% at 72% precision); the Low line is the highest threshold whose band
+  catches **≥ 60% of actual failures** out-of-fold — the operating point sits
+  just before the precision cliff, balancing the prefer-false-positives
+  requirement against alert quality (currently ≈ 0.60, catching 60% of
+  failures at 84% precision); the Low line is the highest threshold whose band
   historically fails at no more than half the cohort's base rate (≈ 0.46).
 
 Artifacts (in `ml/models/`): `risk_model.joblib`, `metrics.json`,

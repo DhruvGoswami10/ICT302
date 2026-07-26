@@ -164,43 +164,10 @@ FEATURE_COLS = [
 ]
 
 
-# Continuous-assessment marks from the results export. Only used by the
-# WEEK-CUTOFF (early-warning) models: a mark contributes to the final total,
-# so feeding it to the end-of-term model would be circular — but at week N of
-# a running term, the marks released so far are legitimately known to the UC
-# and are exactly the signal an early-warning system should use.
-ASSESS_COLS = ["ex_submitted_frac", "ex_mean_mark", "a1_mark"]
-
-
-def load_assessments():
-    df = pd.read_excel(f"{DATA_DIR}/results.xlsx", engine="openpyxl", header=2)
-    df.columns = [str(c).strip() for c in df.columns]
-    df = df[df["Surname"].astype(str).str.contains("Surname", na=False)].copy()
-    df["sid"] = df["Surname"].apply(lambda s: int(re.search(r"0*(\d+)", str(s)).group(1)))
-    out = df[["sid"]].copy()
-    for k in range(1, 11):
-        out[f"ex{k}"] = pd.to_numeric(df[f"Ass Ex {k}"], errors="coerce")
-    out["a1"] = pd.to_numeric(df["Ass 1 with Penalty /100"], errors="coerce")
-    return out
-
-
-def assessment_features(assess, week):
-    """Assessment signals known by cutoff `week`: exercise k runs in week k+1
-    and is marked within a week, so it is visible from week k+2; the
-    Assignment-1 mark is released around week 7. Blank mark = not submitted."""
-    known = [k for k in range(1, 11) if k + 2 <= week]
-    f = pd.DataFrame({"sid": assess["sid"]})
-    if known:
-        sub = assess[[f"ex{k}" for k in known]]
-        f["ex_submitted_frac"] = sub.notna().mean(axis=1)
-        f["ex_mean_mark"] = sub.fillna(0).mean(axis=1)
-    else:
-        f["ex_submitted_frac"] = 0.0
-        f["ex_mean_mark"] = 0.0
-    f["a1_mark"] = assess["a1"].fillna(0) if week >= 7 else 0.0
-    return f
-
-
+# All models — end-of-term AND week-cutoff — are behavioral-only. Assessment
+# marks are never model inputs: a mark contributes to the final total that
+# defines the at-risk label, so using marks would leak the answer into the
+# prediction and inflate the early-warning numbers.
 def to_matrix(feat, cols=None):
     cols = cols or FEATURE_COLS
     f = feat.copy()
