@@ -125,7 +125,7 @@ def main():
     # offer that signal (e.g. no feedback released yet) — neutralise it to the
     # training median rather than reading it as every student disengaging
     for c, m in bundle.get("feature_medians", {}).items():
-        if c != "gender_M" and c in X.columns and len(X) and X[c].max() == 0:
+        if c in X.columns and len(X) and X[c].max() == 0:
             X[c] = m
     proba = model.predict_proba(X)[:, 1]
     feat["risk_prob"] = proba.round(4)

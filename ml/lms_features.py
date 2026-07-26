@@ -154,25 +154,23 @@ def engagement_score(feat):
 # below beats the previous 18-feature set by ~0.05 ROC-AUC — the dropped
 # volume features (total/weighted events, per-component counts) are nearly
 # collinear with active_days and added noise at n=168.
+# gender_M was later removed too: it is uncorrelated with every other feature
+# (|r| <= 0.12) and ablation showed no OOF AUC contribution (0.7606 vs 0.7604),
+# so gender stays a reporting/fairness dimension only, never a model input.
 FEATURE_COLS = [
     "active_days", "night_events", "weekend_events", "submissions",
     "distinct_event_types", "last_week_active", "feedback_viewed",
-    "late_events", "resource_events", "gender_M",
+    "late_events", "resource_events",
 ]
-
-# count features are heavy-tailed; the model consumes them log-compressed
-LOG1P_EXEMPT = {"gender_M"}
 
 
 def to_matrix(feat):
     f = feat.copy()
-    if "gender_M" not in f.columns:
-        f["gender_M"] = (f["gender"] == "M").astype(int)
     for c in FEATURE_COLS:
         if c not in f.columns:
             f[c] = 0
     X = f[FEATURE_COLS].astype(float).fillna(0.0)
+    # count features are heavy-tailed; the model consumes them log-compressed
     for c in FEATURE_COLS:
-        if c not in LOG1P_EXEMPT:
-            X[c] = np.log1p(X[c].clip(lower=0))
+        X[c] = np.log1p(X[c].clip(lower=0))
     return X

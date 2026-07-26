@@ -1,22 +1,22 @@
 {
   "models": {
     "logistic": {
-      "roc_auc": 0.7606,
-      "f1": 0.7581,
-      "accuracy": 0.7,
-      "recall": 0.8061
+      "roc_auc": 0.7604,
+      "f1": 0.7554,
+      "accuracy": 0.7048,
+      "recall": 0.7816
     },
     "random_forest": {
-      "roc_auc": 0.6765,
-      "f1": 0.6947,
-      "accuracy": 0.6155,
+      "roc_auc": 0.6767,
+      "f1": 0.6911,
+      "accuracy": 0.6083,
       "recall": 0.751
     },
     "grad_boost": {
-      "roc_auc": 0.6484,
-      "f1": 0.7116,
-      "accuracy": 0.6083,
-      "recall": 0.8286
+      "roc_auc": 0.6507,
+      "f1": 0.7196,
+      "accuracy": 0.6179,
+      "recall": 0.8408
     }
   },
   "chosen": "logistic",
@@ -25,16 +25,16 @@
   "protocol": "5x repeated stratified 5-fold CV, all metrics out-of-fold",
   "band_alignment": {
     "low": {
-      "students": 17,
-      "actually_failed": 0.3529
+      "students": 12,
+      "actually_failed": 0.4167
     },
     "medium": {
       "students": 103,
-      "actually_failed": 0.4854
+      "actually_failed": 0.4563
     },
     "high": {
-      "students": 48,
-      "actually_failed": 0.875
+      "students": 53,
+      "actually_failed": 0.8679
     }
   }
 }

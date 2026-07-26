@@ -69,7 +69,9 @@ Two anonymised, released exports from ICT001 *Theory of Programming* (S1 2025):
 
 **Join key:** the number in `SurnameNNN`, present in both files.
 **Gender** is encoded by the anonymised first name: **John = male, Joy = female**
-(139 male / 29 female). Gender is used as a model feature and for a fairness lens.
+(139 male / 29 female). Gender is a reporting/fairness lens only — it was
+removed as a model feature after an ablation showed it added no out-of-fold
+AUC and is uncorrelated with every other feature.
 
 Label: a student is **at risk** if final grade is `N` (fail) or final mark < 50.
 Cohort at-risk rate: **58%** (a genuinely high-failure unit).
@@ -81,12 +83,13 @@ Cohort at-risk rate: **58%** (a genuinely high-failure unit).
 - Compares Logistic Regression, Random Forest, Gradient Boosting (each
   sigmoid-calibrated) with repeated stratified 5-fold CV — 5 shuffles, every
   reported number out-of-fold; **logistic regression wins (ROC-AUC ≈ 0.76,
-  accuracy ≈ 0.70, at-risk recall ≈ 0.81)**.
-- **Model features (10):** active days, night & weekend events, submissions,
+  accuracy ≈ 0.70, at-risk recall ≈ 0.78)**.
+- **Model features (9):** active days, night & weekend events, submissions,
   breadth of event types, last active week, feedback views, final-4-weeks
-  activity, resource events, gender. Chosen by cross-validated search (greedy
+  activity, resource events. Chosen by cross-validated search (greedy
   elimination + cross-family combining, confirmed on fresh seeds and nested
-  CV); the dropped volume counts were collinear noise at n=168. Counts enter
+  CV); the dropped volume counts were collinear noise at n=168, and gender
+  was removed after ablation (no AUC contribution — see §3). Counts enter
   the model log-compressed (log1p) then robust-scaled.
 - **Calibrated probabilities:** sigmoid calibration, so risk bands read as
   real failure odds — out-of-fold, **87% of High-band (p ≥ 0.66) students

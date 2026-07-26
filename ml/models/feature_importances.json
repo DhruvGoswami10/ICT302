@@ -1,12 +1,11 @@
 {
-  "active_days": -1.1326,
-  "weekend_events": 0.9829,
-  "feedback_viewed": -0.793,
-  "late_events": 0.6703,
-  "gender_M": -0.6387,
-  "resource_events": -0.4808,
-  "last_week_active": -0.4432,
-  "night_events": 0.3657,
-  "submissions": -0.3059,
-  "distinct_event_types": 0.2363
+  "active_days": -1.099,
+  "weekend_events": 0.923,
+  "feedback_viewed": -0.7477,
+  "late_events": 0.7279,
+  "last_week_active": -0.4584,
+  "resource_events": -0.4547,
+  "night_events": 0.33,
+  "submissions": -0.3175,
+  "distinct_event_types": 0.2321
 }
