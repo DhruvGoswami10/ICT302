@@ -91,9 +91,9 @@ Cohort at-risk rate: **58%** (a genuinely high-failure unit).
   CV); the dropped volume counts were collinear noise at n=168, and gender
   was removed after ablation (no AUC contribution — see §3). Counts enter
   the model log-compressed (log1p) then robust-scaled.
-- **Calibrated probabilities:** sigmoid calibration, so risk bands read as
-  real failure odds — out-of-fold, **87% of High-band (p ≥ 0.66) students
-  actually failed**. The Low band is *absence of alarm*, not a pass guarantee.
+- **Calibrated probabilities:** sigmoid calibration, so predicted
+  probabilities read as real failure odds. The Low band is *absence of
+  alarm*, not a pass guarantee.
 - **Honest scoring:** `scored_students.json` holds out-of-fold probabilities
   (the model never saw the student it scores), so the dashboard's historical
   evidence shows genuine generalisation, not training-set fit.
@@ -106,7 +106,12 @@ Cohort at-risk rate: **58%** (a genuinely high-failure unit).
   cohort, e.g. no feedback released) to the training median.
 - **Explainability:** coefficients exported to `ml/models/feature_importances.json`
   (few active days / no feedback views / little late-term activity → higher risk).
-- Risk bands on the calibrated probability: High ≥ 0.66, Medium 0.33–0.66, Low < 0.33.
+- **Risk-band cutoffs are derived from the data at every retrain**, not fixed
+  splits of the scale: the High alert line is the highest threshold that still
+  catches **≥ 80% of actual failures** out-of-fold (the UC requirement prefers
+  false positives over missed at-risk students — currently ≈ 0.49, catching
+  81% at 72% precision); the Low line is the highest threshold whose band
+  historically fails at no more than half the cohort's base rate (≈ 0.46).
 
 Artifacts (in `ml/models/`): `risk_model.joblib`, `metrics.json`,
 `feature_importances.json`, `early_warning.json`, `scored_students.json`.
@@ -174,8 +179,8 @@ Cloudflare Tunnel.
   historical cohort.
 - Public tunnel URL is ephemeral (a named Cloudflare tunnel needs a domain).
 - Model AUC (~0.76) reflects engagement-only signals on a high-failure unit;
-  the model certifies *risk* well (High band 87% correct) but cannot certify
-  *safety* — a disengaged student who passes anyway is invisible to it, so the
-  Low band should be read as "no alarm", not "will pass".
+  the model certifies *risk* well but cannot certify *safety* — a disengaged
+  student who passes anyway is invisible to it, so the Low band means
+  "historically fails at under half the cohort rate", not "will pass".
 - DB credentials in source are for the local demo only and should be moved to
   environment variables for any real deployment.

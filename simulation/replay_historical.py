@@ -27,7 +27,10 @@ def main():
     logs = L.load_logs()
     res = L.load_results()
     start, end = L.teaching_window(logs)
-    chosen = json.load(open(f"{MODELS}/metrics.json"))["chosen"]
+    mj = json.load(open(f"{MODELS}/metrics.json"))
+    chosen = mj["chosen"]
+    # flag at the data-derived High cutoff (the UC's alert line), not 0.5
+    alert = mj.get("risk_bands", {}).get("high", 0.5)
 
     truth = res.set_index("sid")["at_risk"].to_dict()
     weekly = []
@@ -42,7 +45,7 @@ def main():
         proba = np.mean([oof_proba(make_models()[chosen], Xz, yz, s)
                          for s in CV_SEEDS], axis=0)
         fz = fz.assign(risk=proba)
-        flagged = fz[fz["risk"] >= 0.5]
+        flagged = fz[fz["risk"] >= alert]
         # precision: of those flagged, how many actually failed
         hits = int(flagged["at_risk"].sum())
         actual_fail = sum(truth.values())

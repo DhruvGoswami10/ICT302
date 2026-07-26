@@ -11,7 +11,8 @@ are engaging — and use machine learning to flag students at risk of failing
   timeline, and a live student table that auto-refreshes.
 - 🧠 **At-risk model** — scikit-learn calibrated logistic regression trained on
   a real historical cohort (no external AI API). ROC-AUC ≈ 0.76 / accuracy ≈ 70%
-  out-of-fold; 87% of High-band flags actually failed.
+  out-of-fold; the data-derived High-risk alert line catches 81% of students
+  who actually failed (tuned to prefer false positives over missed students).
 - 🧩 **Moodle plugin** (`report_smartdashboard`) — in-LMS view for the UC plus a
   weekly scheduled risk scan.
 - 🔁 **Real-time** scoring every minute + a full weekly retrain.

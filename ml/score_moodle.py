@@ -129,7 +129,9 @@ def main():
             X[c] = m
     proba = model.predict_proba(X)[:, 1]
     feat["risk_prob"] = proba.round(4)
-    feat["risk_band"] = pd.cut(feat["risk_prob"], [-0.01, 0.33, 0.66, 1.01],
+    # band cutoffs are derived from data at train time (see train_model.py)
+    bands = bundle.get("bands", {"low": 0.33, "high": 0.66})
+    feat["risk_band"] = pd.cut(feat["risk_prob"], [-0.01, bands["low"], bands["high"], 1.01],
                                labels=["Low", "Medium", "High"]).astype(str)
     # attach display names
     name_by_sid = {sid_of(s["username"]): f"{s['firstname']} {s['lastname']}" for s in students}

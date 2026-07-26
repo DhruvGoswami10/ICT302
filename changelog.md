@@ -32,6 +32,12 @@ bands, and a pruned feature set found by cross-validated search.
   out-of-fold protocol (replay previously scored students the model was
   trained on and flagged nearly the whole cohort every week; it now flags
   ~2/3 with precision rising 0.59 → 0.72 across the term).
+- Risk-band cutoffs are now derived from data at each retrain instead of the
+  fixed 0.33/0.66 scale split: the High alert line is the highest threshold
+  still catching ≥ 80% of actual failures out-of-fold (UC requirement —
+  prefer false positives over missed students; it caught only 47% before,
+  81% now), and the Low line requires a historical failure rate of at most
+  half the cohort's base rate.
 
 ### Dashboard
 - Engagement-vs-mark scatter: legend for the risk colours, dashed pass-mark

@@ -34,6 +34,7 @@
     <div class="card"><div class="v" id="k-acc">–</div><div class="l">Accuracy (out-of-fold)</div></div>
     <div class="card"><div class="v" id="k-recall">–</div><div class="l">At-risk recall (out-of-fold)</div></div>
     <div class="card"><div class="v" id="k-band">–</div><div class="l">High-band flags that actually failed</div></div>
+    <div class="card"><div class="v" id="k-caught">–</div><div class="l">Actual failures caught by High band</div></div>
   </div>
   <div class="grid">
     <div class="card"><h3>Early-warning accuracy by week</h3><div class="chart-box"><canvas id="c-early"></canvas></div></div>
@@ -81,6 +82,8 @@
       const hiBand = m.band_alignment && m.band_alignment.high;
       document.getElementById("k-band").textContent =
         hiBand && hiBand.actually_failed != null ? (hiBand.actually_failed*100).toFixed(0)+"%" : "–";
+      document.getElementById("k-caught").textContent =
+        hiBand && hiBand.share_of_failures_caught != null ? (hiBand.share_of_failures_caught*100).toFixed(0)+"%" : "–";
       document.getElementById("page-meta").textContent =
         `Trained on ${m.n_students} historical students · ${(m.at_risk_rate*100).toFixed(1)}% at-risk rate in that training set · ${names[m.chosen]||m.chosen} selected` +
         (m.protocol ? ` · ${m.protocol}` : "");

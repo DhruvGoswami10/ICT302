@@ -36,8 +36,35 @@ OUT = "/home/td05/ict302/ml/models"
 os.makedirs(OUT, exist_ok=True)
 
 CV_SEEDS = [0, 1, 2, 3, 4]
-BANDS = [-0.01, 0.33, 0.66, 1.01]
 BAND_LABELS = ["Low", "Medium", "High"]
+HIGH_RECALL_TARGET = 0.80  # the High band must catch >= this share of actual failures
+
+
+def derive_bands(proba, y):
+    """Band cutoffs measured from out-of-fold probabilities, not an arbitrary
+    split of the scale.
+    High: the highest threshold whose band still catches HIGH_RECALL_TARGET of
+    the students who actually failed - the UC's requirement prefers false
+    positives over missed at-risk students.
+    Low: the highest threshold whose band historically failed at no more than
+    HALF the cohort's base rate; if no such zone exists the Low band is empty
+    rather than pretending the model can certify safety.
+    Cutoffs sit half a rounding step below the qualifying probability so the
+    boundary student stays inside the band."""
+    p = np.round(proba, 4)
+    fails = max(1, int(y.sum()))
+    high = 0.5  # fall back to the model's decision point
+    for t in np.sort(np.unique(p))[::-1]:
+        if y[p >= t].sum() / fails >= HIGH_RECALL_TARGET:
+            high = float(t)
+            break
+    low = float(np.min(p))
+    for t in np.sort(np.unique(p))[::-1]:
+        m = p < t
+        if t < high and m.any() and y[m].mean() <= y.mean() / 2:
+            low = float(t)
+            break
+    return round(low - 0.00005, 5), round(high - 0.00005, 5)
 
 
 def make_models():
@@ -118,19 +145,27 @@ def main():
         full.loc[missing, "risk_prob"] = final.predict_proba(
             L.to_matrix(feat2[missing.values]))[:, 1]
     full["risk_prob"] = full["risk_prob"].round(4)
-    full["risk_band"] = pd.cut(full["risk_prob"], BANDS, labels=BAND_LABELS).astype(str)
+
+    low_cut, high_cut = derive_bands(proba_by_model[best_name], y)
+    bands = [-0.01, low_cut, high_cut, 1.01]
+    print(f"Band cutoffs derived from data: low<{low_cut} high>={high_cut} "
+          f"(High catches >= {HIGH_RECALL_TARGET:.0%} of actual failures out-of-fold)")
+    full["risk_band"] = pd.cut(full["risk_prob"], bands, labels=BAND_LABELS).astype(str)
     scored = full[["sid", "gender", "engagement", "total_events", "active_weeks",
                    "assign_events", "forum_events", "grade_checks",
                    "risk_prob", "risk_band", "mark", "grade", "at_risk"]].sort_values("risk_prob", ascending=False)
     scored.to_json(f"{OUT}/scored_students.json", orient="records")
 
     # how trustworthy each band is against the actual outcomes (OOF)
-    band = pd.cut(proba_by_model[best_name], BANDS, labels=BAND_LABELS)
+    band = pd.cut(proba_by_model[best_name], bands, labels=BAND_LABELS)
     alignment = {}
     for b in BAND_LABELS:
         m = np.asarray(band == b)
         alignment[b.lower()] = {"students": int(m.sum()),
                                 "actually_failed": round(float(y[m].mean()), 4) if m.any() else None}
+    n_fails = max(1, int(y.sum()))
+    alignment["high"]["share_of_failures_caught"] = round(
+        float(y[np.asarray(band == "High")].sum() / n_fails), 4)
     print("Band alignment (OOF):", alignment)
 
     # early-warning: predict the final outcome using only weeks 2/4/6/8 of data,
@@ -159,11 +194,14 @@ def main():
                  # training-cohort medians of the model inputs, used by the live
                  # scorer to neutralise features a course doesn't offer at all
                  "feature_medians": {c: float(X[c].median()) for c in L.FEATURE_COLS},
+                 "bands": {"low": low_cut, "high": high_cut},
                  "start": str(start), "end": str(end)}, f"{OUT}/risk_model.joblib")
 
     json.dump({"models": metrics, "chosen": best_name, "n_students": int(len(data)),
                "at_risk_rate": round(float(y.mean()), 4),
                "protocol": f"{len(CV_SEEDS)}x repeated stratified 5-fold CV, all metrics out-of-fold",
+               "risk_bands": {"low": low_cut, "high": high_cut,
+                              "high_recall_target": HIGH_RECALL_TARGET},
                "band_alignment": alignment},
               open(f"{OUT}/metrics.json", "w"), indent=2)
     json.dump(imp, open(f"{OUT}/feature_importances.json", "w"), indent=2)

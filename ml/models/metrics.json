@@ -23,18 +23,24 @@
   "n_students": 168,
   "at_risk_rate": 0.5833,
   "protocol": "5x repeated stratified 5-fold CV, all metrics out-of-fold",
+  "risk_bands": {
+    "low": 0.46165,
+    "high": 0.48765,
+    "high_recall_target": 0.8
+  },
   "band_alignment": {
     "low": {
-      "students": 12,
-      "actually_failed": 0.4167
+      "students": 46,
+      "actually_failed": 0.2826
     },
     "medium": {
-      "students": 103,
-      "actually_failed": 0.4563
+      "students": 12,
+      "actually_failed": 0.5
     },
     "high": {
-      "students": 53,
-      "actually_failed": 0.8679
+      "students": 110,
+      "actually_failed": 0.7182,
+      "share_of_failures_caught": 0.8061
     }
   }
 }
