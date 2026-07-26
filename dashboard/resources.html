@@ -28,7 +28,7 @@
 </head>
 <body>
   <a class="back" href="index.html">← back_to_dashboard</a>
-  <h1>Viewable Resources in Unit</h1>
+  <h1>Unit Resources &amp; Assignments</h1>
   <p id="page-meta" style="color:var(--mut);font-size:0.85rem;margin-bottom:24px;"></p>
 
   <h2>Assignments</h2>
@@ -60,14 +60,14 @@
     const API = "/api";
 
     function badgeClass(type) {
-      if (type.includes("pdf") || type.includes("file")) return "badge-pdf";
+      if (type.includes("pdf") || type.includes("file") || type.includes("resource")) return "badge-pdf";
       if (type.includes("url")) return "badge-url";
       if (type.includes("page")) return "badge-page";
       return "badge-other";
     }
 
     function friendlyType(type) {
-      if (type.includes("pdf") || type.includes("file")) return "PDF Document";
+      if (type.includes("pdf") || type.includes("file") || type.includes("resource")) return "File / Document";
       if (type.includes("url")) return "URL / Link";
       if (type.includes("page")) return "Page";
       if (type.includes("forum")) return "Forum";
@@ -113,7 +113,7 @@
       .then(rows => {
         const tb = document.getElementById("resource-rows");
         if (!rows.length) {
-          tb.innerHTML = `<tr><td colspan="2" class="empty">No resources found.</td></tr>`;
+          tb.innerHTML = `<tr><td colspan="3" class="empty">No resources found.</td></tr>`;
           return;
         }
         tb.innerHTML = rows.map(r => `
@@ -126,7 +126,7 @@
       })
       .catch(() => {
         document.getElementById("resource-rows").innerHTML =
-          `<tr><td colspan="2" class="empty">Could not load resource data — endpoint not yet available.</td></tr>`;
+          `<tr><td colspan="3" class="empty">Could not load resource data — endpoint not yet available.</td></tr>`;
       });
   </script>
 </body>

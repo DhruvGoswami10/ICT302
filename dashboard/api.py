@@ -191,23 +191,38 @@ def assignments():
             return jsonify([])
         cur.execute("""
             SELECT a.id, a.name, a.duedate,
-                   COUNT(DISTINCT s.userid) as submitted,
                    (SELECT COUNT(DISTINCT ra.userid) FROM mdl_role_assignments ra
                     JOIN mdl_context ctx ON ctx.id=ra.contextid
                          AND ctx.contextlevel=50 AND ctx.instanceid=%s
                     WHERE ra.roleid=5) as total
             FROM mdl_assign a
-            LEFT JOIN mdl_assign_submission s
-                   ON s.assignment=a.id AND s.status='submitted' AND s.latest=1
             WHERE a.course=%s
-            GROUP BY a.id, a.name, a.duedate
             ORDER BY a.duedate ASC
         """, (cid, cid))
         rows = cur.fetchall()
+        # who submitted: the submission table is authoritative, but simulated
+        # activity only exists in the event log — union both sources
+        cur.execute("""
+            SELECT s.assignment AS aid, s.userid FROM mdl_assign_submission s
+            JOIN mdl_assign a ON a.id=s.assignment
+            WHERE a.course=%s AND s.status='submitted' AND s.latest=1
+        """, (cid,))
+        submitted_by = {}
+        for r in cur.fetchall():
+            submitted_by.setdefault(r["aid"], set()).add(r["userid"])
+        cur.execute("""
+            SELECT cm.instance AS aid, l.userid
+            FROM mdl_logstore_standard_log l
+            JOIN mdl_course_modules cm ON cm.id=l.contextinstanceid AND l.contextlevel=70
+            JOIN mdl_modules m ON m.id=cm.module AND m.name='assign'
+            WHERE l.courseid=%s AND l.eventname LIKE '%%assessable_submitted%%'
+        """, (cid,))
+        for r in cur.fetchall():
+            submitted_by.setdefault(r["aid"], set()).add(r["userid"])
         result = []
         for r in rows:
             total = r["total"] or 1
-            submitted = r["submitted"] or 0
+            submitted = len(submitted_by.get(r["id"], ()))
             result.append({
                 "name": r["name"],
                 "duedate": r["duedate"],
@@ -233,7 +248,9 @@ def resources():
             SELECT cm.id, m.name as type,
                    COALESCE(r.name, u.name, p.name, f.name, cm.id) as name,
                    (SELECT COUNT(*) FROM mdl_logstore_standard_log l
-                    WHERE l.contextinstanceid = cm.id AND l.contextlevel = 70) as views
+                    WHERE l.contextinstanceid = cm.id AND l.contextlevel = 70
+                      AND l.eventname LIKE '%%course_module_viewed%%'
+                      AND l.userid > 2) as views
             FROM mdl_course_modules cm
             JOIN mdl_modules m ON m.id=cm.module
             LEFT JOIN mdl_resource r ON r.id=cm.instance AND m.name='resource'
