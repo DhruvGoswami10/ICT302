@@ -8,15 +8,19 @@ Model accuracy overhaul — honest out-of-fold evaluation, calibrated risk
 bands, and a pruned feature set found by cross-validated search.
 
 ### Machine-learning engine
-- **Accuracy 64.9% → 70.0%, ROC-AUC 0.699 → 0.761, at-risk recall 65% → 81%**
+- **Accuracy 64.9% → 70.0%, ROC-AUC 0.699 → 0.761, at-risk recall 65% → 78%**
   (all out-of-fold, repeated stratified 5-fold CV over 5 shuffles).
-- Pruned the 18-feature set to 10 via cross-validated search (greedy
+- Pruned the 18-feature set to 9 via cross-validated search (greedy
   elimination + combination search, confirmed on fresh seeds and nested CV);
   added `feedback_viewed` and `late_events` features, dropped collinear
   volume counts that were adding noise at n=168.
+- Gender removed as a model feature (kept as a reporting/fairness dimension
+  only): it is uncorrelated with every other feature and contributes zero
+  out-of-fold AUC — its coefficient was amplifying a statistically
+  non-significant gap measured on 29 female students.
 - Count features now enter the model log-compressed (log1p) + robust-scaled.
 - Sigmoid-calibrated probabilities: risk bands now read as real failure odds
-  (out-of-fold, 87% of High-band students actually failed).
+  (out-of-fold, 84% of students above the High alert line actually failed).
 - `scored_students.json` now holds **out-of-fold** probabilities, so the
   dashboard's historical evidence shows generalisation, not training fit.
 - Fixed the engagement component weights, which never matched the Excel
@@ -31,26 +35,28 @@ bands, and a pruned feature set found by cross-validated search.
 - Early-warning and the historical replay now use the same repeated
   out-of-fold protocol (replay previously scored students the model was
   trained on and flagged nearly the whole cohort every week; it now flags
-  ~2/3 with precision rising 0.59 → 0.72 across the term).
+  ~40% of the cohort at the High alert line, with precision rising
+  0.68 → 0.81 across the term).
 - Risk-band cutoffs are now derived from data at each retrain instead of the
   fixed 0.33/0.66 scale split: the High alert line is the highest threshold
-  still catching ≥ 80% of actual failures out-of-fold (UC requirement —
-  prefer false positives over missed students; it caught only 47% before,
-  81% now), and the Low line requires a historical failure rate of at most
-  half the cohort's base rate.
-- Early-warning models now use the continuous-assessment columns of the
-  results export that were previously ignored (10 weekly Assessed Exercise
-  marks, Assignment 1 mark), restricted to what is known by each cutoff
-  week; mid-term AUC rises to 0.79 by week 4 and 0.82 by week 8 (logs-only:
-  0.67/0.71), and week-6 replay precision improves 0.66 → 0.80. The
-  end-of-term model stays engagement-only since final marks derive from
-  these assessments.
+  still catching ≥ 60% of actual failures out-of-fold — chosen just before
+  the precision cliff (84% precision; the old fixed line caught only 47%) —
+  and the Low line requires a historical failure rate of at most half the
+  cohort's base rate.
+- All models are strictly behavioral: continuous-assessment marks were
+  trialled as week-cutoff features and removed the same day — a mark is a
+  component of the final total that defines the at-risk label, so it leaked
+  the answer into the prediction and inflated the early-warning numbers.
+  Honest behavioral-only early warning, now reported for weeks 2–12:
+  AUC 0.59 (week 2) → 0.71 (week 8) → 0.76 (week 10).
 
 ### Dashboard
 - Engagement-vs-mark scatter: legend for the risk colours, dashed pass-mark
   line at 50, and a caption stating dots are out-of-sample predictions.
 - Model page: accuracy, at-risk recall and High-band reliability KPIs plus
   the evaluation protocol note.
+- Model page: early-warning bars sorted numerically (weeks 10/12 previously
+  rendered before week 2).
 
 ## [1.0.0] — 2026-06-16
 

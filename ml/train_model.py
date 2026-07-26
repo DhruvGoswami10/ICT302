@@ -14,7 +14,7 @@ per-student risk probabilities in scored_students.json are also out-of-fold
 (the model never saw that student when scoring them), so the dashboard's
 "historical evidence" reflects genuine generalisation, not training-set fit.
 Probabilities are sigmoid-calibrated so the High/Medium/Low bands read as real
-failure odds (e.g. p >= 0.66 means roughly "5 in 6 students like this failed").
+failure odds (out-of-fold, ~84% of students above the High cutoff actually failed).
 """
 import json
 import os

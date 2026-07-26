@@ -68,7 +68,8 @@
 
     (async () => {
       const ew = await get("/early_warning");
-      bar("c-early", Object.keys(ew).map(k=>k.replace("week_","Wk ")), Object.values(ew), C.med, false);
+      const wks = Object.keys(ew).sort((a,b)=>+a.replace("week_","")-+b.replace("week_",""));
+      bar("c-early", wks.map(k=>k.replace("week_","Wk ")), wks.map(k=>ew[k]), C.med, false);
 
       const imp = await get("/feature_importances");
       const items = Object.entries(imp).slice(0,6);

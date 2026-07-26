@@ -26,7 +26,6 @@ OUT = "/home/td05/ict302/simulation/historical_replay.json"
 def main():
     logs = L.load_logs()
     res = L.load_results()
-    assess = L.load_assessments()
     start, end = L.teaching_window(logs)
     mj = json.load(open(f"{MODELS}/metrics.json"))
     chosen = mj["chosen"]
@@ -40,9 +39,8 @@ def main():
         feat = L.build_features(logs, cutoff=cutoff, start=start)
         if not len(feat):
             continue
-        fz = (feat.merge(res, on="sid", how="inner")
-                  .merge(L.assessment_features(assess, wk), on="sid", how="left"))
-        Xz = L.to_matrix(fz.fillna(0), L.FEATURE_COLS + L.ASSESS_COLS)
+        fz = feat.merge(res, on="sid", how="inner")
+        Xz = L.to_matrix(fz.fillna(0))
         yz = fz["at_risk"].values
         proba = np.mean([oof_proba(make_models()[chosen], Xz, yz, s)
                          for s in CV_SEEDS], axis=0)
