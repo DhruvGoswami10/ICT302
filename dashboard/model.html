@@ -31,6 +31,9 @@
   <p class="meta" id="page-meta"></p>
   <div class="kpi-row">
     <div class="card"><div class="v" id="k-auc">–</div><div class="l">Model AUC (cross-val)</div></div>
+    <div class="card"><div class="v" id="k-acc">–</div><div class="l">Accuracy (out-of-fold)</div></div>
+    <div class="card"><div class="v" id="k-recall">–</div><div class="l">At-risk recall (out-of-fold)</div></div>
+    <div class="card"><div class="v" id="k-band">–</div><div class="l">High-band flags that actually failed</div></div>
   </div>
   <div class="grid">
     <div class="card"><h3>Early-warning accuracy by week</h3><div class="chart-box"><canvas id="c-early"></canvas></div></div>
@@ -71,9 +74,16 @@
       bar("c-imp", items.map(i=>i[0]), items.map(i=>Math.abs(i[1])), C.ac, true);
 
       const m = await get("/metrics");
-      document.getElementById("k-auc").textContent = m.models[m.chosen].roc_auc.toFixed(4);
+      const best = m.models[m.chosen];
+      document.getElementById("k-auc").textContent = best.roc_auc.toFixed(4);
+      document.getElementById("k-acc").textContent = (best.accuracy*100).toFixed(1)+"%";
+      document.getElementById("k-recall").textContent = (best.recall*100).toFixed(1)+"%";
+      const hiBand = m.band_alignment && m.band_alignment.high;
+      document.getElementById("k-band").textContent =
+        hiBand && hiBand.actually_failed != null ? (hiBand.actually_failed*100).toFixed(0)+"%" : "–";
       document.getElementById("page-meta").textContent =
-        `Trained on ${m.n_students} historical students · ${(m.at_risk_rate*100).toFixed(1)}% at-risk rate in that training set · ${names[m.chosen]||m.chosen} selected`;
+        `Trained on ${m.n_students} historical students · ${(m.at_risk_rate*100).toFixed(1)}% at-risk rate in that training set · ${names[m.chosen]||m.chosen} selected` +
+        (m.protocol ? ` · ${m.protocol}` : "");
       document.getElementById("model-rows").innerHTML = Object.entries(m.models).map(([key,v])=>{
         const isChosen = key===m.chosen;
         const style = isChosen ? `color:#35D0C0;font-weight:700` : "";

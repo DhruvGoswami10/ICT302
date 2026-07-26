@@ -152,16 +152,34 @@ async function refreshLive(){
     : "<div>No live activity yet — log in to Moodle and click around.</div>";
 }
 
+const passLinePlugin = {
+  id: 'passLine',
+  afterDatasetsDraw(chart){
+    if(chart.config.type!=='scatter') return;
+    const y = chart.scales.y.getPixelForValue(50);
+    const {left, right} = chart.chartArea, ctx = chart.ctx;
+    ctx.save();
+    ctx.strokeStyle = "rgba(154,163,175,.4)"; ctx.setLineDash([5,4]);
+    ctx.beginPath(); ctx.moveTo(left, y); ctx.lineTo(right, y); ctx.stroke();
+    ctx.fillStyle = C.mut; ctx.font = "600 9px ui-monospace, 'SF Mono', Consolas, monospace";
+    ctx.fillText("PASS MARK 50", left+6, y-5);
+    ctx.restore();
+  }
+};
+
 async function refreshStatic(){
 
   const eo = await get("/engagement_outcome");
-  const col = b=> b==="High"?C.hi : b==="Medium"?C.med : C.lo;
+  const dot = b=>({label:`${b} risk`,
+    data:eo.filter(p=>p.risk_band===b).map(p=>({x:p.engagement,y:p.mark,band:p.risk_band})),
+    backgroundColor:b==="High"?C.hi:b==="Medium"?C.med:C.lo,pointRadius:4,
+    pointHoverRadius:7,pointHoverBorderColor:"#fff",pointHoverBorderWidth:2});
   if(charts["c-scatter"]) charts["c-scatter"].destroy();
   charts["c-scatter"]=new Chart(document.getElementById("c-scatter"),{type:"scatter",
-    data:{datasets:[{data:eo.map(p=>({x:p.engagement,y:p.mark,band:p.risk_band})),
-      backgroundColor:eo.map(p=>col(p.risk_band)),pointRadius:4,
-      pointHoverRadius:7,pointHoverBorderColor:"#fff",pointHoverBorderWidth:2}]},
-    options:{maintainAspectRatio:false,plugins:{legend:{display:false},
+    data:{datasets:[dot("High"),dot("Medium"),dot("Low")]},
+    plugins:[passLinePlugin],
+    options:{maintainAspectRatio:false,plugins:{legend:{display:true,position:"bottom",
+        labels:{usePointStyle:true,pointStyle:"circle",boxWidth:6,boxHeight:6}},
         tooltip:{callbacks:{label:ctx=>{
           const p = ctx.raw;
           return [`Engagement: ${p.x}`, `Final mark: ${p.y}`, `Risk: ${p.band}`];

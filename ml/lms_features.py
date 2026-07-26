@@ -15,11 +15,15 @@ import pandas as pd
 DATA_DIR = "/home/td05/ict302/data"
 
 # --- engagement weighting per Moodle component (how much an event "counts") ---
+# Two naming schemes must both be covered: the live Moodle DB uses plugin names
+# (mod_assign, mod_forum, ...) while the released Excel export uses display
+# names (Assignment, Forum, File, ...).
 COMPONENT_WEIGHT = {
-    "mod_assign": 3.0, "assign": 3.0,
-    "mod_quiz": 3.0, "quiz": 3.0,
-    "mod_forum": 2.0, "forum": 2.0,
-    "mod_resource": 1.5, "resource": 1.5, "File": 1.5, "mod_url": 1.2, "url": 1.2,
+    "mod_assign": 3.0, "assign": 3.0, "Assignment": 3.0, "File submissions": 3.0,
+    "mod_quiz": 3.0, "quiz": 3.0, "Quiz": 3.0,
+    "mod_forum": 2.0, "forum": 2.0, "Forum": 2.0, "Submission comments": 2.0,
+    "mod_resource": 1.5, "resource": 1.5, "File": 1.5, "Echo link": 1.5,
+    "mod_url": 1.2, "url": 1.2,
     "mod_page": 1.2, "page": 1.2,
 }
 
@@ -75,16 +79,21 @@ def teaching_window(logs):
     return q_lo.normalize(), q_hi.normalize()
 
 
-def build_features(logs, cutoff=None, start=None):
+def build_features(logs, cutoff=None, start=None, end=None):
     """
     Build per-student engagement features from the log rows.
     If `cutoff` is given, only events up to that timestamp are used
     (this is what powers early-warning + the week-by-week simulation).
+    `end` marks the end of the observation window (defaults to the cutoff,
+    or the teaching window end) and anchors the recency features.
     """
     if start is None:
         start, _ = teaching_window(logs)
+    if end is None:
+        end = cutoff if cutoff is not None else teaching_window(logs)[1]
     d = logs if cutoff is None else logs[logs["ts"] <= cutoff]
     d = d[d["ts"] >= start]
+    n_weeks = max(1, int((end - start).days // 7) + 1)
 
     rows = []
     comp = d["Component"].astype(str)
@@ -115,8 +124,11 @@ def build_features(logs, cutoff=None, start=None):
             "resource_events": int(gc.str.contains("resource|file|url|page", case=False).sum()),
             "grade_checks": int(ge.str.contains("grade", case=False).sum()),
             "submissions": int(ge.str.contains("submitted", case=False).sum()),
+            # matches "Feedback viewed" (export) and \mod_assign\event\feedback_viewed (live DB)
+            "feedback_viewed": int(ge.str.contains("feedback", case=False).sum()),
             "distinct_event_types": ge.nunique(),
             "early_events": int((weeks <= 1).sum()),         # first 2 weeks
+            "late_events": int((weeks >= n_weeks - 4).sum()),  # final 4 weeks of window
             "last_week_active": int(weeks.max()) if n else 0,
         })
     feat = pd.DataFrame(rows)
@@ -136,18 +148,31 @@ def engagement_score(feat):
     return (100 * score).round(1)
 
 
+# Model inputs. Selected by cross-validated search over the full candidate set
+# (greedy backward elimination + cross-family combination, repeated stratified
+# 5-fold CV, verified on held-out seeds and with nested CV): the pruned set
+# below beats the previous 18-feature set by ~0.05 ROC-AUC — the dropped
+# volume features (total/weighted events, per-component counts) are nearly
+# collinear with active_days and added noise at n=168.
 FEATURE_COLS = [
-    "total_events", "weighted_events", "active_days", "active_weeks", "span_days",
-    "events_per_active_day", "night_events", "weekend_events", "assign_events",
-    "quiz_events", "forum_events", "resource_events", "grade_checks", "submissions",
-    "distinct_event_types", "early_events", "last_week_active", "gender_M",
+    "active_days", "night_events", "weekend_events", "submissions",
+    "distinct_event_types", "last_week_active", "feedback_viewed",
+    "late_events", "resource_events", "gender_M",
 ]
+
+# count features are heavy-tailed; the model consumes them log-compressed
+LOG1P_EXEMPT = {"gender_M"}
 
 
 def to_matrix(feat):
     f = feat.copy()
-    f["gender_M"] = (f["gender"] == "M").astype(int)
+    if "gender_M" not in f.columns:
+        f["gender_M"] = (f["gender"] == "M").astype(int)
     for c in FEATURE_COLS:
         if c not in f.columns:
             f[c] = 0
-    return f[FEATURE_COLS].fillna(0.0)
+    X = f[FEATURE_COLS].astype(float).fillna(0.0)
+    for c in FEATURE_COLS:
+        if c not in LOG1P_EXEMPT:
+            X[c] = np.log1p(X[c].clip(lower=0))
+    return X

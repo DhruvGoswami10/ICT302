@@ -4,90 +4,90 @@
     {
       "week": 2,
       "students_active": 156,
-      "flagged": 156,
-      "flagged_correct": 88,
-      "precision": 0.564,
-      "recall": 0.88
+      "flagged": 120,
+      "flagged_correct": 71,
+      "precision": 0.592,
+      "recall": 0.71
     },
     {
       "week": 3,
       "students_active": 163,
-      "flagged": 163,
-      "flagged_correct": 94,
-      "precision": 0.577,
-      "recall": 0.94
+      "flagged": 122,
+      "flagged_correct": 78,
+      "precision": 0.639,
+      "recall": 0.78
     },
     {
       "week": 4,
       "students_active": 166,
-      "flagged": 166,
-      "flagged_correct": 96,
-      "precision": 0.578,
-      "recall": 0.96
+      "flagged": 121,
+      "flagged_correct": 78,
+      "precision": 0.645,
+      "recall": 0.78
     },
     {
       "week": 5,
       "students_active": 167,
-      "flagged": 167,
-      "flagged_correct": 97,
-      "precision": 0.581,
-      "recall": 0.97
+      "flagged": 120,
+      "flagged_correct": 80,
+      "precision": 0.667,
+      "recall": 0.8
     },
     {
       "week": 6,
       "students_active": 167,
-      "flagged": 167,
-      "flagged_correct": 97,
-      "precision": 0.581,
-      "recall": 0.97
+      "flagged": 111,
+      "flagged_correct": 74,
+      "precision": 0.667,
+      "recall": 0.74
     },
     {
       "week": 7,
       "students_active": 168,
-      "flagged": 167,
-      "flagged_correct": 98,
-      "precision": 0.587,
-      "recall": 0.98
+      "flagged": 119,
+      "flagged_correct": 77,
+      "precision": 0.647,
+      "recall": 0.77
     },
     {
       "week": 8,
       "students_active": 168,
-      "flagged": 165,
-      "flagged_correct": 98,
-      "precision": 0.594,
-      "recall": 0.98
+      "flagged": 110,
+      "flagged_correct": 75,
+      "precision": 0.682,
+      "recall": 0.75
     },
     {
       "week": 9,
       "students_active": 168,
-      "flagged": 163,
-      "flagged_correct": 97,
-      "precision": 0.595,
-      "recall": 0.97
+      "flagged": 108,
+      "flagged_correct": 75,
+      "precision": 0.694,
+      "recall": 0.75
     },
     {
       "week": 10,
       "students_active": 168,
-      "flagged": 161,
-      "flagged_correct": 97,
-      "precision": 0.602,
-      "recall": 0.97
+      "flagged": 103,
+      "flagged_correct": 74,
+      "precision": 0.718,
+      "recall": 0.74
     },
     {
       "week": 11,
       "students_active": 168,
-      "flagged": 151,
-      "flagged_correct": 94,
-      "precision": 0.623,
-      "recall": 0.94
+      "flagged": 111,
+      "flagged_correct": 77,
+      "precision": 0.694,
+      "recall": 0.77
     },
     {
       "week": 12,
       "students_active": 168,
-      "flagged": 141,
-      "flagged_correct": 93,
-      "precision": 0.66,
-      "recall": 0.93
+      "flagged": 114,
+      "flagged_correct": 82,
+      "precision": 0.719,
+      "recall": 0.82
     }
   ],
   "total_at_risk": 100,

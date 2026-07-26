@@ -2,6 +2,43 @@
 
 All notable changes to the Smart LMS Dashboard project.
 
+## [1.1.0] — 2026-07-26
+
+Model accuracy overhaul — honest out-of-fold evaluation, calibrated risk
+bands, and a pruned feature set found by cross-validated search.
+
+### Machine-learning engine
+- **Accuracy 64.9% → 70.0%, ROC-AUC 0.699 → 0.761, at-risk recall 65% → 81%**
+  (all out-of-fold, repeated stratified 5-fold CV over 5 shuffles).
+- Pruned the 18-feature set to 10 via cross-validated search (greedy
+  elimination + combination search, confirmed on fresh seeds and nested CV);
+  added `feedback_viewed` and `late_events` features, dropped collinear
+  volume counts that were adding noise at n=168.
+- Count features now enter the model log-compressed (log1p) + robust-scaled.
+- Sigmoid-calibrated probabilities: risk bands now read as real failure odds
+  (out-of-fold, 87% of High-band students actually failed).
+- `scored_students.json` now holds **out-of-fold** probabilities, so the
+  dashboard's historical evidence shows generalisation, not training fit.
+- Fixed the engagement component weights, which never matched the Excel
+  export's component names (`Assignment`, `File`, …) — both naming schemes
+  (export + live DB) are now covered.
+- Week-cutoff models (wk 2–12) ship in the model bundle; the live scorer picks
+  the one matching the cohort's elapsed weeks, and neutralises features the
+  course structurally lacks (zero across the whole cohort) to the training
+  median — live demo cohort no longer over-flagged as ~all High.
+- Fixed the live scorer reading Unix timestamps as UTC: night/weekend
+  features now use local (server) time, matching training.
+- Early-warning and the historical replay now use the same repeated
+  out-of-fold protocol (replay previously scored students the model was
+  trained on and flagged nearly the whole cohort every week; it now flags
+  ~2/3 with precision rising 0.59 → 0.72 across the term).
+
+### Dashboard
+- Engagement-vs-mark scatter: legend for the risk colours, dashed pass-mark
+  line at 50, and a caption stating dots are out-of-sample predictions.
+- Model page: accuracy, at-risk recall and High-band reliability KPIs plus
+  the evaluation protocol note.
+
 ## [1.0.0] — 2026-06-16
 
 Initial working prototype — full pipeline from Moodle activity to live AI risk

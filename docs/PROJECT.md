@@ -78,19 +78,32 @@ Cohort at-risk rate: **58%** (a genuinely high-failure unit).
 
 ## 4. The model
 
-- Compares Logistic Regression, Random Forest, Gradient Boosting with 5-fold
-  stratified CV; **logistic regression wins (ROC-AUC ≈ 0.70)** and generalises
-  best on this small cohort.
-- **Engagement features:** total & component-weighted events, active days/weeks,
-  events per active day, night/weekend activity, assignment/quiz/forum/resource
-  events, grade checks, submissions, breadth of activity, early-weeks activity,
-  last active week, gender.
-- **Engagement index (0–100):** weighted activity + consistency + breadth.
-- **Early warning:** trained on cumulative data up to weeks 2/4/6/8 — AUC rises
-  to **0.77 by week 6**, i.e. it gets reliable early in the term.
+- Compares Logistic Regression, Random Forest, Gradient Boosting (each
+  sigmoid-calibrated) with repeated stratified 5-fold CV — 5 shuffles, every
+  reported number out-of-fold; **logistic regression wins (ROC-AUC ≈ 0.76,
+  accuracy ≈ 0.70, at-risk recall ≈ 0.81)**.
+- **Model features (10):** active days, night & weekend events, submissions,
+  breadth of event types, last active week, feedback views, final-4-weeks
+  activity, resource events, gender. Chosen by cross-validated search (greedy
+  elimination + cross-family combining, confirmed on fresh seeds and nested
+  CV); the dropped volume counts were collinear noise at n=168. Counts enter
+  the model log-compressed (log1p) then robust-scaled.
+- **Calibrated probabilities:** sigmoid calibration, so risk bands read as
+  real failure odds — out-of-fold, **87% of High-band (p ≥ 0.66) students
+  actually failed**. The Low band is *absence of alarm*, not a pass guarantee.
+- **Honest scoring:** `scored_students.json` holds out-of-fold probabilities
+  (the model never saw the student it scores), so the dashboard's historical
+  evidence shows genuine generalisation, not training-set fit.
+- **Engagement index (0–100):** weighted activity + consistency + breadth
+  (component weights cover both the Excel export's and the live DB's naming).
+- **Early warning:** cumulative data up to weeks 2/4/6/8, same OOF protocol —
+  AUC rises **0.59 → 0.71 by week 8**. Week-cutoff models ship in the bundle:
+  the live scorer picks the one matching the cohort's elapsed weeks, and
+  neutralises features the course structurally lacks (zero across the whole
+  cohort, e.g. no feedback released) to the training median.
 - **Explainability:** coefficients exported to `ml/models/feature_importances.json`
-  (low active-weeks / few submissions / few assignment events → higher risk).
-- Risk bands: High ≥ 0.66, Medium 0.33–0.66, Low < 0.33.
+  (few active days / no feedback views / little late-term activity → higher risk).
+- Risk bands on the calibrated probability: High ≥ 0.66, Medium 0.33–0.66, Low < 0.33.
 
 Artifacts (in `ml/models/`): `risk_model.joblib`, `metrics.json`,
 `feature_importances.json`, `early_warning.json`, `scored_students.json`.
@@ -157,7 +170,9 @@ Cloudflare Tunnel.
 - Live demo cohort is 20 accounts; the model is trained on the full 168-student
   historical cohort.
 - Public tunnel URL is ephemeral (a named Cloudflare tunnel needs a domain).
-- Model AUC (~0.70) reflects engagement-only signals on a high-failure unit;
-  adding assessment-timeliness and engagement-trend features should improve it.
+- Model AUC (~0.76) reflects engagement-only signals on a high-failure unit;
+  the model certifies *risk* well (High band 87% correct) but cannot certify
+  *safety* — a disengaged student who passes anyway is invisible to it, so the
+  Low band should be read as "no alarm", not "will pass".
 - DB credentials in source are for the local demo only and should be moved to
   environment variables for any real deployment.
