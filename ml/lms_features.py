@@ -1,23 +1,16 @@
-"""
-Data loading + feature engineering for the Smart LMS at-risk model.
-
-Two historical sources (anonymised real Moodle export for ICT001 S1 2025):
-  - data/logs.xlsx     : 54k Moodle event-log rows
-  - data/results.xlsx  : final marks / grades per student
-
-Join key: the number in "SurnameNNN" (present in both files).
-Gender is encoded by the anonymised first name: John = male, Joy = female.
-"""
+"""Data loading + feature engineering for the Smart LMS at-risk model.
+Sources (anonymised Moodle export, ICT001 S1 2025): data/logs.xlsx (54k event
+rows) and data/results.xlsx (final marks). Join on the number in "SurnameNNN".
+Gender comes from the anonymised first name: John = M, Joy = F."""
 import re
 import numpy as np
 import pandas as pd
 
 DATA_DIR = "/home/td05/ict302/data"
 
-# --- engagement weighting per Moodle component (how much an event "counts") ---
-# Two naming schemes must both be covered: the live Moodle DB uses plugin names
-# (mod_assign, mod_forum, ...) while the released Excel export uses display
-# names (Assignment, Forum, File, ...).
+# engagement weight per Moodle component
+# keys must cover both naming schemes: live DB plugin names (mod_assign) and
+# Excel export display names (Assignment)
 COMPONENT_WEIGHT = {
     "mod_assign": 3.0, "assign": 3.0, "Assignment": 3.0, "File submissions": 3.0,
     "mod_quiz": 3.0, "quiz": 3.0, "Quiz": 3.0,
@@ -80,13 +73,9 @@ def teaching_window(logs):
 
 
 def build_features(logs, cutoff=None, start=None, end=None):
-    """
-    Build per-student engagement features from the log rows.
-    If `cutoff` is given, only events up to that timestamp are used
-    (this is what powers early-warning + the week-by-week simulation).
-    `end` marks the end of the observation window (defaults to the cutoff,
-    or the teaching window end) and anchors the recency features.
-    """
+    """Per-student engagement features from the log rows.
+    `cutoff` drops events after that timestamp (early-warning, weekly simulation).
+    `end` (default: cutoff, else teaching window end) anchors the recency features."""
     if start is None:
         start, _ = teaching_window(logs)
     if end is None:
@@ -148,15 +137,8 @@ def engagement_score(feat):
     return (100 * score).round(1)
 
 
-# Model inputs. Selected by cross-validated search over the full candidate set
-# (greedy backward elimination + cross-family combination, repeated stratified
-# 5-fold CV, verified on held-out seeds and with nested CV): the pruned set
-# below beats the previous 18-feature set by ~0.05 ROC-AUC — the dropped
-# volume features (total/weighted events, per-component counts) are nearly
-# collinear with active_days and added noise at n=168.
-# gender_M was later removed too: it is uncorrelated with every other feature
-# (|r| <= 0.12) and ablation showed no OOF AUC contribution (0.7606 vs 0.7604),
-# so gender stays a reporting/fairness dimension only, never a model input.
+# Model inputs. Volume counts are collinear with active_days at n=168;
+# gender and marks are never inputs (marks feed the at-risk label).
 FEATURE_COLS = [
     "active_days", "night_events", "weekend_events", "submissions",
     "distinct_event_types", "last_week_active", "feedback_viewed",
@@ -164,10 +146,6 @@ FEATURE_COLS = [
 ]
 
 
-# All models — end-of-term AND week-cutoff — are behavioral-only. Assessment
-# marks are never model inputs: a mark contributes to the final total that
-# defines the at-risk label, so using marks would leak the answer into the
-# prediction and inflate the early-warning numbers.
 def to_matrix(feat, cols=None):
     cols = cols or FEATURE_COLS
     f = feat.copy()
@@ -175,7 +153,7 @@ def to_matrix(feat, cols=None):
         if c not in f.columns:
             f[c] = 0
     X = f[cols].astype(float).fillna(0.0)
-    # count features are heavy-tailed; the model consumes them log-compressed
+    # count features are heavy-tailed, log-compress them
     for c in cols:
         X[c] = np.log1p(X[c].clip(lower=0))
     return X

@@ -77,8 +77,7 @@ tb.innerHTML = rows.map(r => `
           </tr>
         `).join("");
 
-        // Sequential weeks counted from this student's first activity record,
-        // with zero-activity weeks kept in the sequence as zero bars.
+        // weeks count from this student's first event; gap weeks stay in as zero bars
         const MS_PER_WEEK = 7 * 24 * 60 * 60 * 1000;
         const times = rows.map(r => new Date(r.time).getTime());
         const firstTime = times.reduce((a, b) => Math.min(a, b));
@@ -86,7 +85,7 @@ tb.innerHTML = rows.map(r => `
         const weekOf = t => Math.floor((t - firstTime) / MS_PER_WEEK) + 1;
         const weekCounts = new Array(weekOf(lastTime)).fill(0);
         times.forEach(t => { weekCounts[weekOf(t) - 1] += 1; });
-        // Plugin-free data labels: draw each bar's value above it on the canvas.
+        // draw each bar's value above it, saves pulling in the datalabels plugin
         const barValueLabels = {
           id: "barValueLabels",
           afterDatasetsDraw(chart) {

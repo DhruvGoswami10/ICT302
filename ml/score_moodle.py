@@ -1,12 +1,7 @@
 """
-Score the LIVE Moodle cohort with the trained at-risk model.
-
-Reads enrolled students + their real events from the Moodle database
-(mdl_logstore_standard_log), builds the same feature schema used in training,
-and writes models/live_risk.json for the dashboard.
-
-This is what makes the dashboard "live": run it on a schedule (cron / Moodle
-scheduled task) or on demand and the dashboard reflects current engagement.
+Score the live Moodle cohort with the trained at-risk model.
+Reads enrolled students and events from mdl_logstore_standard_log, builds the
+training feature schema, writes models/live_risk.json. Run via cron or on demand.
 """
 import json
 import re
@@ -63,8 +58,7 @@ def main():
     courseid, students, events = fetch()
     umap = {s["id"]: s for s in students}
 
-    # timecreated is a unix timestamp (UTC); convert to server-local time so
-    # night/weekend features mean local nights and weekends, matching training
+    # timecreated is UTC epoch; convert to server-local so night/weekend features match training
     local_tz = datetime.now().astimezone().tzinfo
     rows = []
     for e in events:
@@ -94,8 +88,7 @@ def main():
     if len(logs):
         start = logs["ts"].min().normalize()
         feat = L.build_features(logs, start=start)
-        # mid-term cohort: score with the historical model trained on a data
-        # window of matching length, so feature scales line up (see train_model)
+        # mid-term cohort: use the week model with a matching data window so feature scales line up
         elapsed = (logs["ts"].max() - start).days / 7.0
         term_weeks = (pd.to_datetime(bundle["end"]) - pd.to_datetime(bundle["start"])).days / 7.0
         if week_models and elapsed < term_weeks - 1:
@@ -124,21 +117,18 @@ def main():
 
     feat["engagement"] = L.engagement_score(feat) if len(feat) > 1 else 0.0
     X = L.to_matrix(feat, cols)
-    # a feature that is zero for the ENTIRE cohort means the course doesn't
-    # offer that signal (e.g. no feedback released yet) — neutralise it to the
-    # training median rather than reading it as every student disengaging
+    # a cohort-wide zero column means the course lacks that signal (e.g. no feedback
+    # released yet), not mass disengagement; fall back to the training median
     for c, m in medians.items():
         if c in X.columns and len(X) and X[c].max() == 0:
             X[c] = m
     proba = model.predict_proba(X)[:, 1]
     feat["risk_prob"] = proba.round(4)
-    # band cutoffs are derived from data at train time (see train_model.py);
-    # the fallback mirrors the current 60%-recall operating point for bundles
-    # predating shipped bands
+    # band cutoffs come from train_model.py; fallback is the 60%-recall operating
+    # point for bundles that predate shipped bands
     bands = bundle.get("bands", {"low": 0.46165, "high": 0.60225})
     feat["risk_band"] = pd.cut(feat["risk_prob"], [-0.01, bands["low"], bands["high"], 1.01],
                                labels=["Low", "Medium", "High"]).astype(str)
-    # attach display names
     name_by_sid = {sid_of(s["username"]): f"{s['firstname']} {s['lastname']}" for s in students}
     feat["name"] = feat["sid"].map(name_by_sid)
 

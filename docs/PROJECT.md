@@ -2,7 +2,7 @@
 
 A Moodle-integrated analytics platform that lets a Unit Coordinator (UC) see
 student engagement at a glance and uses a machine-learning model to flag
-students at risk of failing **while the teaching period is still underway**.
+students at risk of failing while the teaching period is still underway.
 
 Built for the ICT302 capstone. Client: Peter Cole, Murdoch University.
 
@@ -11,13 +11,13 @@ Built for the ICT302 capstone. Client: Peter Cole, Murdoch University.
 ## 1. What it does
 
 1. **Tracks engagement** for every enrolled student from Moodle's activity logs
-   (views, submissions, forum activity, grade checks) — including students who
-   are *not* engaging, which is the hardest group to see in stock Moodle.
+   (views, submissions, forum activity, grade checks), including students who
+   are not engaging, the hardest group to see in stock Moodle.
 2. **Scores at-risk students** with a scikit-learn model trained on a real
-   historical cohort. This is an *algorithm-based* model, not an external AI API.
+   historical cohort. This is an algorithm-based model, not an external AI API.
 3. **Visualises everything** on a live, auto-refreshing web dashboard
    (PowerBI-style) and inside Moodle itself via a custom report plugin.
-4. **Re-scores in real time** (every minute) and runs a full **weekly scan**.
+4. **Re-scores in real time** (every minute) and runs a full weekly scan.
 5. **Simulates** a whole teaching period so the system can be demonstrated and
    validated end-to-end.
 
@@ -68,54 +68,51 @@ Two anonymised, released exports from ICT001 *Theory of Programming* (S1 2025):
 - `data/results.xlsx` — final marks / grades.
 
 **Join key:** the number in `SurnameNNN`, present in both files.
-**Gender** is encoded by the anonymised first name: **John = male, Joy = female**
-(139 male / 29 female). Gender is a reporting/fairness lens only — it was
-removed as a model feature after an ablation showed it added no out-of-fold
-AUC and is uncorrelated with every other feature.
+**Gender** is encoded by the anonymised first name: John = male, Joy = female
+(139 male / 29 female). Gender is a reporting/fairness lens only, never a model input.
 
 Label: a student is **at risk** if final grade is `N` (fail) or final mark < 50.
-Cohort at-risk rate: **58%** (a genuinely high-failure unit).
+Cohort at-risk rate: 58% (a high-failure unit).
 
 ---
 
 ## 4. The model
 
 - Compares Logistic Regression, Random Forest, Gradient Boosting (each
-  sigmoid-calibrated) with repeated stratified 5-fold CV — 5 shuffles, every
-  reported number out-of-fold; **logistic regression wins (ROC-AUC ≈ 0.76,
-  accuracy ≈ 0.70, at-risk recall ≈ 0.78)**.
+  sigmoid-calibrated) with repeated stratified 5-fold CV (5 shuffles, every
+  reported number out-of-fold); logistic regression wins (ROC-AUC ≈ 0.76,
+  accuracy ≈ 0.70, at-risk recall ≈ 0.78).
 - **Model features (9):** active days, night & weekend events, submissions,
   breadth of event types, last active week, feedback views, final-4-weeks
-  activity, resource events. Chosen by cross-validated search (greedy
-  elimination + cross-family combining, confirmed on fresh seeds and nested
-  CV); the dropped volume counts were collinear noise at n=168, and gender
-  was removed after ablation (no AUC contribution — see §3). Counts enter
-  the model log-compressed (log1p) then robust-scaled.
+  activity, resource events. Chosen by cross-validated feature selection.
+  Volume counts are excluded (collinear with active_days at n=168) and
+  gender is reporting-only (see §3). Counts enter the model log-compressed
+  (log1p) then robust-scaled.
 - **Calibrated probabilities:** sigmoid calibration, so predicted
-  probabilities read as real failure odds. The Low band is *absence of
-  alarm*, not a pass guarantee.
-- **Honest scoring:** `scored_students.json` holds out-of-fold probabilities
+  probabilities read as real failure odds. The Low band is absence of
+  alarm, not a pass guarantee.
+- **Out-of-fold scoring:** `scored_students.json` holds out-of-fold probabilities
   (the model never saw the student it scores), so the dashboard's historical
-  evidence shows genuine generalisation, not training-set fit.
+  evidence shows generalisation, not training-set fit.
 - **Engagement index (0–100):** weighted activity + consistency + breadth
   (component weights cover both the Excel export's and the live DB's naming).
 - **Early warning:** cumulative data up to weeks 2/4/6/8/10, same OOF
-  protocol, behavioral features only — assessment marks are never model
+  protocol, behavioral features only. Assessment marks are never model
   inputs, in the week-cutoff models or anywhere else: a mark is a component
   of the final total that defines the at-risk label, so using it would leak
-  the answer into the prediction. AUC rises **0.59 → 0.71 by week 8 → 0.76
-  by week 10**. Week-cutoff models ship in the bundle: the live scorer picks
+  the answer into the prediction. AUC rises 0.59 → 0.71 by week 8 → 0.76
+  by week 10. Week-cutoff models ship in the bundle: the live scorer picks
   the one matching the cohort's elapsed weeks, and neutralises features the
   course structurally lacks (zero across the whole cohort, e.g. no feedback
   released) to the training median.
 - **Explainability:** coefficients exported to `ml/models/feature_importances.json`
   (few active days / no feedback views / little late-term activity → higher risk).
-- **Risk-band cutoffs are derived from the data at every retrain**, not fixed
-  splits of the scale: the High alert line is the highest threshold that still
-  catches **≥ 60% of actual failures** out-of-fold — the operating point sits
+- **Risk-band cutoffs:** derived from the data at every retrain, not fixed
+  splits of the scale. The High alert line is the highest threshold that still
+  catches ≥ 60% of actual failures out-of-fold; the operating point sits
   just before the precision cliff, balancing the prefer-false-positives
   requirement against alert quality (currently ≈ 0.60, catching 60% of
-  failures at 84% precision); the Low line is the highest threshold whose band
+  failures at 84% precision). The Low line is the highest threshold whose band
   historically fails at no more than half the cohort's base rate (≈ 0.46).
 
 Artifacts (in `ml/models/`): `risk_model.joblib`, `metrics.json`,
@@ -127,7 +124,7 @@ Artifacts (in `ml/models/`): `risk_model.joblib`, `metrics.json`,
 
 ### Live URLs (this VM)
 - **Dashboard (local):** http://10.51.33.70/
-- **Dashboard (public):** Cloudflare quick tunnel — see `setup/` notes; the
+- **Dashboard (public):** Cloudflare quick tunnel, see `setup/` notes. The
   URL changes when the tunnel service restarts. Retrieve the current one with:
   `sudo grep -oE 'https://[a-z0-9-]+\.trycloudflare\.com' /var/log/smartlms-tunnel.log | tail -1`
 - **Moodle LMS:** http://10.51.33.70:8081/
@@ -184,8 +181,8 @@ Cloudflare Tunnel.
   historical cohort.
 - Public tunnel URL is ephemeral (a named Cloudflare tunnel needs a domain).
 - Model AUC (~0.76) reflects engagement-only signals on a high-failure unit;
-  the model certifies *risk* well but cannot certify *safety* — a disengaged
-  student who passes anyway is invisible to it, so the Low band means
-  "historically fails at under half the cohort rate", not "will pass".
+  engagement signals cannot distinguish a disengaged student who passes
+  anyway, so the Low band means "historically fails at under half the cohort
+  rate", not "will pass".
 - DB credentials in source are for the local demo only and should be moved to
   environment variables for any real deployment.

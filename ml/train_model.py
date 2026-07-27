@@ -1,21 +1,8 @@
-"""
-Train the at-risk classifier on the historical ICT001 data and emit artifacts:
-  models/risk_model.joblib      - trained pipeline (scaler + calibrated classifier)
-  models/metrics.json           - cross-validated model comparison + chosen model
-  models/feature_importances.json
-  models/scored_students.json   - per-student engagement + risk on the historical cohort
-  models/early_warning.json     - AUC of predicting the final outcome from week-2/4/6/8 data
-
-Pure scikit-learn (algorithm-based, no external AI API).
-
-Evaluation protocol: every reported number is OUT-OF-FOLD — stratified 5-fold
-cross-validation repeated over CV_SEEDS different shuffles, averaged. The
-per-student risk probabilities in scored_students.json are also out-of-fold
-(the model never saw that student when scoring them), so the dashboard's
-"historical evidence" reflects genuine generalisation, not training-set fit.
-Probabilities are sigmoid-calibrated so the High/Medium/Low bands read as real
-failure odds (out-of-fold, ~84% of students above the High cutoff actually failed).
-"""
+"""Train the at-risk classifier on the historical ICT001 data (scikit-learn only).
+Writes to models/: risk_model.joblib, metrics.json, feature_importances.json,
+scored_students.json, early_warning.json.
+Every reported metric and per-student probability is out-of-fold (stratified
+5-fold CV repeated over CV_SEEDS); probabilities are sigmoid-calibrated."""
 import json
 import os
 import numpy as np
@@ -41,16 +28,11 @@ HIGH_RECALL_TARGET = 0.60  # the High band must catch >= this share of actual fa
 
 
 def derive_bands(proba, y):
-    """Band cutoffs measured from out-of-fold probabilities, not an arbitrary
-    split of the scale.
-    High: the highest threshold whose band still catches HIGH_RECALL_TARGET of
-    the students who actually failed - the UC's requirement prefers false
-    positives over missed at-risk students.
-    Low: the highest threshold whose band historically failed at no more than
-    HALF the cohort's base rate; if no such zone exists the Low band is empty
-    rather than pretending the model can certify safety.
-    Cutoffs sit half a rounding step below the qualifying probability so the
-    boundary student stays inside the band."""
+    """Derive band cutoffs from out-of-fold probabilities.
+    High: highest threshold still catching HIGH_RECALL_TARGET of actual failures
+    (UC prefers false positives over missed students).
+    Low: highest threshold whose band failed at <= half the base rate, else empty.
+    Cutoffs sit half a rounding step lower so the boundary student stays in-band."""
     p = np.round(proba, 4)
     fails = max(1, int(y.sum()))
     high = 0.5  # fall back to the model's decision point
@@ -68,8 +50,7 @@ def derive_bands(proba, y):
 
 
 def make_models():
-    # RobustScaler over StandardScaler: count features stay heavy-tailed even
-    # after the log1p in to_matrix, and medians/IQRs are stabler at n=168
+    # RobustScaler: counts stay heavy-tailed after log1p, medians/IQR are stabler at n=168
     logistic = Pipeline([("sc", RobustScaler()),
                          ("clf", LogisticRegression(max_iter=5000, class_weight="balanced"))])
     forest = Pipeline([("sc", RobustScaler()),
@@ -133,8 +114,7 @@ def main():
                    [round(float(v), 4) for v in expl.named_steps["clf"].coef_[0]]))
     imp = dict(sorted(imp.items(), key=lambda kv: -abs(kv[1])))
 
-    # scored cohort for the dashboard: OUT-OF-FOLD probabilities (averaged over
-    # the repeated CV shuffles) so the historical-evidence chart is honest
+    # dashboard cohort scores are OOF probabilities averaged over the CV shuffles
     eng = L.engagement_score(feat)
     feat2 = feat.copy(); feat2["engagement"] = eng
     full = feat2.merge(res, on="sid", how="left")
@@ -156,7 +136,7 @@ def main():
                    "risk_prob", "risk_band", "mark", "grade", "at_risk"]].sort_values("risk_prob", ascending=False)
     scored.to_json(f"{OUT}/scored_students.json", orient="records")
 
-    # how trustworthy each band is against the actual outcomes (OOF)
+    # observed failure rate per band (OOF)
     band = pd.cut(proba_by_model[best_name], bands, labels=BAND_LABELS)
     alignment = {}
     for b in BAND_LABELS:
@@ -168,15 +148,10 @@ def main():
         float(y[np.asarray(band == "High")].sum() / n_fails), 4)
     print("Band alignment (OOF):", alignment)
 
-    # early-warning: predict the final outcome using only weeks 2/4/6/8 of data,
-    # with the same repeated out-of-fold protocol as the headline metrics.
-    # A model fitted at each cutoff also ships in the bundle: a mid-term cohort
-    # (live scoring, replay) must be scored by the model whose data window has
-    # the same scale, otherwise every student looks disengaged relative to
+    # early-warning: same repeated OOF protocol, data up to each week cutoff only.
+    # A model fitted per cutoff also ships: a mid-term cohort must be scored by a
+    # model with a matching data window, or everyone looks disengaged against
     # full-term feature ranges and gets over-flagged.
-    # Week-cutoff models are behavioral-only, exactly like the end-of-term
-    # model: assessment marks are never inputs (a mark is a component of the
-    # final total that defines the label, so it would leak the answer).
     ew = {}
     week_models = {}
     yz = data["at_risk"].values
@@ -195,8 +170,7 @@ def main():
                            "medians": {c: float(Xz[c].median()) for c in L.FEATURE_COLS}}
 
     joblib.dump({"model": final, "week_models": week_models, "features": L.FEATURE_COLS,
-                 # training-cohort medians of the model inputs, used by the live
-                 # scorer to neutralise features a course doesn't offer at all
+                 # live scorer uses these to neutralise features a course doesn't offer
                  "feature_medians": {c: float(X[c].median()) for c in L.FEATURE_COLS},
                  "bands": {"low": low_cut, "high": high_cut},
                  "start": str(start), "end": str(end)}, f"{OUT}/risk_model.joblib")

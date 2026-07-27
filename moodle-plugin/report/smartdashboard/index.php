@@ -17,7 +17,7 @@ $PAGE->set_pagelayout('report');
 $PAGE->set_title(get_string('pluginname', 'report_smartdashboard'));
 $PAGE->set_heading($course->fullname);
 
-// Optionally trigger an on-demand AI risk scan.
+// On-demand AI risk scan; restricted to site admins.
 if ($runscan && confirm_sesskey() && has_capability('moodle/site:config', context_system::instance())) {
     $task = new \report_smartdashboard\task\risk_scan();
     $task->execute();

@@ -1,14 +1,7 @@
 """
-Week-by-week replay over the REAL historical cohort.
-
-For each week of the teaching period it rebuilds engagement features using only
-the data available up to that week and scores every student OUT-OF-FOLD (the
-scoring model never saw that student), then measures how well the early flags
-match the actual end-of-term failures. This is the evidence that the tool
-detects at-risk students *early*, without the optimism of scoring students the
-model was trained on.
-
-Output: simulation/historical_replay.json  (consumed for reporting / the brief).
+Week-by-week replay over the real historical cohort.
+Features only use data up to each week, and scoring is out-of-fold so a student
+is never scored by a model trained on them. Writes simulation/historical_replay.json.
 """
 import json
 import sys

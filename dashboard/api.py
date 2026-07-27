@@ -1,11 +1,6 @@
-"""
-Smart LMS Dashboard API (Flask).
+"""Flask API for the Smart LMS dashboard.
 
-Serves live + historical analytics as JSON:
-  - live risk/engagement of the Moodle cohort (from models/live_risk.json)
-  - real-time activity feed + timeline straight from the Moodle DB
-  - the trained model's metrics, drivers and early-warning curve
-  - historical engagement-vs-outcome evidence
+Serves model output JSON from ml/models plus live queries against the Moodle DB.
 
 Runs behind nginx (which serves the static dashboard and proxies /api/*).
 """
@@ -96,8 +91,7 @@ def importances():
 
 @app.route("/api/early_warning")
 def early_warning():
-    # serialize in week order: jsonify would sort keys alphabetically,
-    # putting week_10 before week_2
+    # jsonify sorts keys alphabetically, which puts week_10 before week_2
     ew = load("early_warning.json", {})
     ordered = {k: ew[k] for k in sorted(ew, key=lambda k: int(k.rsplit("_", 1)[-1]))}
     return app.response_class(json.dumps(ordered), mimetype="application/json")
@@ -153,7 +147,7 @@ def recent():
 
 @app.route("/api/engagement_outcome")
 def engagement_outcome():
-    """Historical proof: engagement index vs final mark (+ risk band)."""
+    """Engagement index vs final mark for the historical cohort."""
     hist = load("scored_students.json", [])
     pts = [{"engagement": h.get("engagement"), "mark": h.get("mark"),
             "risk_band": h.get("risk_band"), "grade": h.get("grade")}
@@ -204,8 +198,7 @@ def assignments():
             ORDER BY a.duedate ASC
         """, (cid, cid))
         rows = cur.fetchall()
-        # who submitted: the submission table is authoritative, but simulated
-        # activity only exists in the event log — union both sources
+        # simulated submits only exist in the event log, so union it with the submission table
         cur.execute("""
             SELECT s.assignment AS aid, s.userid FROM mdl_assign_submission s
             JOIN mdl_assign a ON a.id=s.assignment
@@ -241,7 +234,7 @@ def assignments():
 
 @app.route("/api/resources")
 def resources():
-    """Viewable course content (pages, urls, forums, files) — excludes assignments/quizzes."""
+    """Viewable course content (pages, urls, forums, files), excluding assignments/quizzes."""
     conn = db()
     try:
         cur = conn.cursor()

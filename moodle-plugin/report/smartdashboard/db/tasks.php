@@ -6,7 +6,7 @@ $tasks = [
     [
         'classname' => 'report_smartdashboard\task\risk_scan',
         'blocking'  => 0,
-        // Weekly, Sunday 03:00 — the "weekend scan".
+        // Weekly, Sunday 03:00 (dayofweek 0 = Sunday).
         'minute'    => '0',
         'hour'      => '3',
         'day'       => '*',

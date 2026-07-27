@@ -1,18 +1,7 @@
 """
-Simulate a teaching period of Moodle activity for the demo cohort.
-
-Generates realistic events (course views, module views, submissions, grade
-checks) for each enrolled student according to an engagement profile, spread
-across the teaching weeks. Events are written into mdl_logstore_standard_log
-exactly like real Moodle activity, so the live scorer + dashboard react to them.
-
-Profiles:
-  high   -> engaged all term            -> Low risk
-  medium -> moderate, some weeks missed -> Medium risk
-  low    -> active early then drops off  -> High risk (early-warning signal)
-
-Re-runnable: previously simulated rows (tagged in `other`) are cleared first.
-Pure simulation — no real student data is used here.
+Simulate a teaching period of Moodle activity for the demo cohort, written
+straight into mdl_logstore_standard_log so the live scorer reacts to it.
+Re-runnable: rows tagged in `other` are wiped first.
 """
 import json
 import random
@@ -24,16 +13,14 @@ DB = dict(host="127.0.0.1", user="moodleuser", password="Moodle#2026db",
 COURSE_SHORT = "ICT001"
 SIM_TAG = '{"sim":true}'
 WEEKS = 12        # teaching weeks
-TAIL_WEEKS = 5    # exam / marking / results period, like the real cohort's logs
-# anchor the term so it ends just before now: the dashboard reads as a term
-# wrapping up today, and manually generated live activity lands in-window
+TAIL_WEEKS = 5    # exam/marking/results period, matches the real cohort's logs
+# term must end just before now so manually generated live activity lands in-window
 TERM_START = (datetime.now() - timedelta(weeks=WEEKS + TAIL_WEEKS, days=1)
               ).replace(hour=0, minute=0, second=0, microsecond=0)
 random.seed(42)
 
-# per-week volumes sized against the historical cohort the model was trained
-# on (~326 events per student over the term), so demo students sit on the same
-# scale as the real students the risk model learned from
+# per-week volumes sized to the training cohort (~326 events/student/term) so
+# demo students sit on the same scale the model saw
 PROFILES = {
     "high":   dict(weeks=range(0, WEEKS),   per_week=(25, 45), submit=0.95, gradecheck=0.5,
                    feedback=0.9, fb_views=(4, 9), tail_per_week=(1, 4)),
@@ -119,8 +106,7 @@ def main():
                 day = TERM_START + timedelta(weeks=w, days=random.randint(0, 6), hours=20)
                 ev(uid, day, r"\gradereport_user\event\grade_report_viewed",
                    "gradereport_user", "viewed", "grade_report", coursectx, 50, courseid)
-        # assignment submissions (rolled per assignment) + later feedback views,
-        # like real cohorts: engaged students hand work in and read the feedback
+        # submission chance rolled per assignment, feedback views trail 1-3 weeks after
         for a in assigns:
             if random.random() >= prof["submit"]:
                 continue
@@ -137,8 +123,7 @@ def main():
                     ev(uid, fday, r"\mod_assign\event\feedback_viewed", "mod_assign",
                        "viewed", "feedback", a["contextid"], 70, a["cmid"],
                        "assign_grades", a["instance"])
-        # exam / marking / results weeks: light closure activity (grade checks,
-        # reading released feedback), mirroring the real cohort's log shape
+        # tail weeks: light closure activity (grade checks, reading released feedback)
         for w in range(WEEKS, WEEKS + TAIL_WEEKS):
             for _ in range(random.randint(*prof["tail_per_week"])):
                 day = TERM_START + timedelta(weeks=w, days=random.randint(0, 6),
@@ -162,7 +147,6 @@ def main():
     conn.commit()
     print(f"Inserted {len(rows)} simulated events for {len(students)} students "
           f"across {WEEKS} weeks.")
-    # profile summary
     summary = {}
     for i, s in enumerate(students):
         summary.setdefault(assign_profile(i), []).append(s["username"])

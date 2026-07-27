@@ -1,22 +1,22 @@
 # Smart LMS Dashboard (ICT302)
 
 Moodle-integrated learning analytics that show a Unit Coordinator how students
-are engaging — and use machine learning to flag students at risk of failing
-**while the term is still running**.
+are engaging, and use machine learning to flag students at risk of failing
+while the term is still running.
 
 ![status](https://img.shields.io/badge/status-working%20prototype-brightgreen)
 
 ## Highlights
-- 📊 **Live dashboard** (Chart.js) — engagement, risk distribution, activity
+- Live dashboard (Chart.js): engagement, risk distribution, activity
   timeline, and a live student table that auto-refreshes.
-- 🧠 **At-risk model** — scikit-learn calibrated logistic regression trained on
+- At-risk model: scikit-learn calibrated logistic regression trained on
   a real historical cohort (no external AI API). ROC-AUC ≈ 0.76 / accuracy ≈ 70%
   out-of-fold; the data-derived High-risk alert line catches 81% of students
   who actually failed (tuned to prefer false positives over missed students).
-- 🧩 **Moodle plugin** (`report_smartdashboard`) — in-LMS view for the UC plus a
+- Moodle plugin (`report_smartdashboard`): in-LMS view for the UC plus a
   weekly scheduled risk scan.
-- 🔁 **Real-time** scoring every minute + a full weekly retrain.
-- 🧪 **Simulation** of a whole teaching period for demos and validation.
+- Real-time scoring every minute + a full weekly retrain.
+- Simulation of a whole teaching period for demos and validation.
 
 ## Quick links
 - Dashboard: `http://<vm-ip>/`
